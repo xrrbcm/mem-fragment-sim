@@ -190,18 +190,25 @@ function scoreGrid(grid,board,combos){
 function runProgressive(invs,iters=120){
   const data={};
   for(let a=0;a<invs.length;a++){
-    const perBoard=[];for(let b=0;b<6;b++)perBoard.push({runs:[],stopped:0});
+    const perBoard=[];for(let b=0;b<6;b++)perBoard.push({runs:[],stopped:0,usageRuns:[]});
     for(let it=0;it<iters;it++){
       const{frags,combos}=mkInventory(invs[a]);
       let rem=[...frags],cum=0;
       for(let b=0;b<6;b++){
+        const emptyUsage={};FRAG_KEYS.forEach(k=>emptyUsage[k]=0);
         if(rem.length===0){
           perBoard[b].runs.push({filled:0,onC:0,dC:0,empty:16,pP:0,dP:0,fB:0,hB:0,cP:0,perfectClear:false,boardCleared:false,total:0,cumTotal:cum,stopped:true,fragsAvail:0});
-          perBoard[b].stopped++;continue;
+          perBoard[b].stopped++;
+          perBoard[b].usageRuns.push(emptyUsage);
+          continue;
         }
         const{grid,usedIds}=solveBoard(BOARDS[b],rem);
         const sc=scoreGrid(grid,BOARDS[b],combos);
         cum+=sc.total;
+        // Track which types were used
+        const usage={...emptyUsage};
+        for(const idx of usedIds){usage[rem[idx].type]=(usage[rem[idx].type]||0)+1;}
+        perBoard[b].usageRuns.push(usage);
         perBoard[b].runs.push({...sc,cumTotal:cum,stopped:sc.filled===0,fragsAvail:rem.length});
         if(sc.filled===0)perBoard[b].stopped++;
         rem=rem.filter((_,i)=>!usedIds.has(i));
@@ -212,13 +219,17 @@ function runProgressive(invs,iters=120){
       const av=fn=>R.reduce((s,r)=>s+fn(r),0)/N;
       const vs=R.map(r=>r.total);
       const avgT=av(r=>r.total);
+      // Average usage per type per board
+      const avgUsage={};
+      FRAG_KEYS.forEach(k=>{avgUsage[k]=+(br.usageRuns.reduce((s,u)=>s+(u[k]||0),0)/N).toFixed(1);});
       return{bi,avgScore:+avgT.toFixed(1),minScore:Math.min(...vs),maxScore:Math.max(...vs),
         stdDev:+(Math.sqrt(av(r=>(r.total-avgT)**2)).toFixed(1)),
         avgFilled:+av(r=>r.filled).toFixed(1),avgOnPath:+av(r=>r.onC).toFixed(1),
         pctFull:+((R.filter(r=>r.boardCleared).length/N*100).toFixed(1)),
         pctPC:+((R.filter(r=>r.perfectClear).length/N*100).toFixed(1)),
         avgCombo:+av(r=>r.cP).toFixed(1),avgCum:+av(r=>r.cumTotal).toFixed(1),
-        stopPct:+((br.stopped/N*100).toFixed(1)),avgFrags:+av(r=>r.fragsAvail).toFixed(1)};
+        stopPct:+((br.stopped/N*100).toFixed(1)),avgFrags:+av(r=>r.fragsAvail).toFixed(1),
+        avgUsage};
     });
   }
   return data;
@@ -601,6 +612,71 @@ export default function App(){
                 {firstStop>=0&&<p style={{fontSize:9,color:"#FCA5A5",margin:"4px 0 8px",padding:"4px 8px",background:"#7F1D1D15",border:"1px solid #F8717125",borderRadius:4}}>
                   ⚠ Fragments fully depleted after Board {firstStop}. Boards {firstStop+1}–6 have no fragments. Incomplete boards still earn points for tiles placed.
                 </p>}
+
+                {/* Badge Breakdown: Owned vs Used per board */}
+                <div style={{marginBottom:10,overflowX:"auto"}}>
+                  <div style={{fontSize:9,color:"#64748B",marginBottom:6,fontWeight:600,letterSpacing:.5,textTransform:"uppercase"}}>
+                    🧩 Badge Breakdown — Owned vs Avg Used per Board
+                  </div>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:9}}>
+                    <thead>
+                      <tr>
+                        <th style={{padding:"4px 6px",textAlign:"left",color:"#64748B",borderBottom:"1px solid #1E293B",fontSize:8}}>Fragment Type</th>
+                        <th style={{padding:"4px 6px",textAlign:"center",color:"#FBBF24",borderBottom:"1px solid #1E293B",fontSize:8}}>Owned</th>
+                        {BOARDS.map((_,b)=>(
+                          <th key={b} style={{padding:"4px 5px",textAlign:"center",color:"#64748B",borderBottom:"1px solid #1E293B",fontSize:8}}>B{b+1} Used</th>
+                        ))}
+                        <th style={{padding:"4px 6px",textAlign:"center",color:"#F472B6",borderBottom:"1px solid #1E293B",fontSize:8}}>Total Used</th>
+                        <th style={{padding:"4px 6px",textAlign:"center",color:"#34D399",borderBottom:"1px solid #1E293B",fontSize:8}}>Remaining</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {FRAG_KEYS.map(k=>{
+                        const owned=inv.frags[k]||0;
+                        if(owned===0 && bds.every(bd=>(bd.avgUsage?.[k]||0)===0)) return null;
+                        const usedPerBoard=bds.map(bd=>bd.avgUsage?.[k]||0);
+                        const totalUsed=+usedPerBoard.reduce((s,v)=>s+v,0).toFixed(1);
+                        const remaining=+(owned-totalUsed).toFixed(1);
+                        return(
+                          <tr key={k}>
+                            <td style={{padding:"4px 6px",color:FTYPES[k].c,fontWeight:600,borderBottom:"1px solid #1E293B15",whiteSpace:"nowrap"}}>
+                              <span style={{display:"inline-block",width:6,height:6,borderRadius:2,background:FTYPES[k].c,marginRight:4,verticalAlign:"middle"}}/>
+                              {FRAG_LABELS[k]}
+                            </td>
+                            <td style={{padding:"4px 6px",textAlign:"center",color:"#FBBF24",fontWeight:700,borderBottom:"1px solid #1E293B15"}}>{owned}</td>
+                            {usedPerBoard.map((u,b)=>(
+                              <td key={b} style={{padding:"4px 5px",textAlign:"center",borderBottom:"1px solid #1E293B15",
+                                color:u>0?"#E2E8F0":"#334155",fontWeight:u>0?600:400,
+                                background:u>0?`${FTYPES[k].c}15`:"transparent"}}>
+                                {u>0?u.toFixed(1):"—"}
+                              </td>
+                            ))}
+                            <td style={{padding:"4px 6px",textAlign:"center",color:"#F472B6",fontWeight:700,borderBottom:"1px solid #1E293B15"}}>{totalUsed}</td>
+                            <td style={{padding:"4px 6px",textAlign:"center",fontWeight:700,borderBottom:"1px solid #1E293B15",
+                              color:remaining>0.5?"#34D399":remaining<-0.5?"#F87171":"#475569"}}>
+                              {remaining.toFixed(1)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {/* Totals row */}
+                      <tr style={{borderTop:"1px solid #334155"}}>
+                        <td style={{padding:"5px 6px",color:"#F8FAFC",fontWeight:700,fontSize:9}}>TOTAL</td>
+                        <td style={{padding:"5px 6px",textAlign:"center",color:"#FBBF24",fontWeight:700}}>{totalF(inv)}</td>
+                        {bds.map((bd,b)=>{
+                          const boardTotal=+FRAG_KEYS.reduce((s,k)=>s+(bd.avgUsage?.[k]||0),0).toFixed(1);
+                          return(<td key={b} style={{padding:"5px 5px",textAlign:"center",color:boardTotal>0?"#F8FAFC":"#334155",fontWeight:700}}>{boardTotal>0?boardTotal.toFixed(1):"—"}</td>);
+                        })}
+                        <td style={{padding:"5px 6px",textAlign:"center",color:"#F472B6",fontWeight:700}}>
+                          {+FRAG_KEYS.reduce((s,k)=>s+bds.reduce((ss,bd)=>ss+(bd.avgUsage?.[k]||0),0),0).toFixed(1)}
+                        </td>
+                        <td style={{padding:"5px 6px",textAlign:"center",color:"#34D399",fontWeight:700}}>
+                          {+(totalF(inv)-FRAG_KEYS.reduce((s,k)=>s+bds.reduce((ss,bd)=>ss+(bd.avgUsage?.[k]||0),0),0)).toFixed(1)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
                 <div style={{overflowX:"auto"}}>
                   <table style={{width:"100%",borderCollapse:"collapse",fontSize:9}}>
                     <thead><tr style={{color:"#64748B"}}>
