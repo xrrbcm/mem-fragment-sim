@@ -449,7 +449,7 @@ export default function App(){
     },50);
   },[inv]);
 
-  const css=`*{margin:0;padding:0;box-sizing:border-box}body{background:#0A0F1C}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:1}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}`;
+  const css=`*{margin:0;padding:0;box-sizing:border-box}body{background:#0A0F1C}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:1}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}@keyframes pulseGlow{0%,100%{stroke-opacity:0.2;stroke-width:2}50%{stroke-opacity:0.6;stroke-width:4}}`;
 
   const tb=(p,l)=>(<button onClick={()=>{if(p===5||p===6)setPhase(p);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
 
@@ -983,14 +983,19 @@ export default function App(){
     return F_IMG.crossSpecial;
   };
 
+  const[placeFx,setPlaceFx]=useState(null); // {r,c,key} for lottie animation
+
   const spawnFrag=(type)=>setGameInv(p=>[...p,mkFrag(type,Date.now()+Math.random())]);
   const pickUp=(frag,invIdx)=>{setCarrying({frag,invIdx});setGameSelected(invIdx);};
   const cancelCarry=()=>{setCarrying(null);};
   const placeOnBoard=(r,c)=>{
     if(!carrying||gameBoard[r][c])return;
-    setGameBoard(p=>{const n=p.map(r=>[...r]);n[r][c]={...carrying.frag};return n;});
+    setGameBoard(p=>{const n=p.map(row=>[...row]);n[r][c]={...carrying.frag};return n;});
     setGameInv(p=>p.filter((_,i)=>i!==carrying.invIdx));
     setCarrying(null);setGameSelected(null);
+    // Trigger electricity lottie at placement position
+    const key=Date.now();setPlaceFx({r,c,key});
+    setTimeout(()=>setPlaceFx(prev=>prev&&prev.key===key?null:prev),900);
   };
   const removeFromBoard=(r,c)=>{
     if(!gameBoard[r][c])return;
@@ -1002,7 +1007,7 @@ export default function App(){
     setGameInv(p=>{const n=[...p];const f={...n[idx]};const rots=allRots(f.shape,f.notches);if(rots.length<=1)return p;const ck=[...f.notches].sort().join(",");const ci=rots.findIndex(r=>[...r].sort().join(",")===ck);f.notches=[...rots[(ci+1)%rots.length]];n[idx]=f;
     if(carrying&&carrying.invIdx===idx)setCarrying({frag:f,invIdx:idx});return n;});
   };
-  const resetGame=()=>{setGameBoard(Array.from({length:4},()=>Array(4).fill(null)));setGameInv([]);setGameSelected(null);setGameCombos([]);setCarrying(null);};
+  const resetGame=()=>{setGameBoard(Array.from({length:4},()=>Array(4).fill(null)));setGameInv([]);setGameSelected(null);setGameCombos([]);setCarrying(null);setPlaceFx(null);};
   const autoSolve=()=>{const all=[...gameInv];for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(gameBoard[r][c])all.push(gameBoard[r][c]);const{grid,usedIds}=solveBoard(board,all);setGameBoard(grid.map(r=>r.map(c=>c?{...c}:null)));setGameInv(all.filter((_,i)=>!usedIds.has(i)));setGameSelected(null);setCarrying(null);};
 
   // Live score
@@ -1099,6 +1104,12 @@ export default function App(){
                   {tile?(<>
                     <img src={fragImg(tile.shape,tile.notches)} width={cellSz-12} height={cellSz-12} style={{opacity:0.9,pointerEvents:"none"}} alt=""/>
                     {hasCombo&&<div style={{position:"absolute",width:18,height:18,borderRadius:"50%",background:"#FF00E5",border:"2px solid #FF00E580",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:3,pointerEvents:"none"}}/>}
+                    {/* Lottie placement effect */}
+                    {placeFx&&placeFx.r===r&&placeFx.c===c&&(
+                      <div style={{position:"absolute",inset:-20,zIndex:10,pointerEvents:"none"}}>
+                        <dotlottie-player src="/frags/electricity.lottie" autoplay speed="1.5" style={{width:"100%",height:"100%"}}/>
+                      </div>
+                    )}
                   </>):(
                     <span style={{fontSize:10,color:carrying?"#6366F140":"#1E293B80",fontFamily:"monospace",fontWeight:700,pointerEvents:"none"}}>{pi>=0?pi+1:""}</span>
                   )}
@@ -1106,6 +1117,38 @@ export default function App(){
               );
             })}
           </div>
+
+          {/* Hamiltonian path glow — shows when path has tiles on it */}
+          {ls.onP>=2&&(
+            <svg style={{position:"absolute",left:0,top:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:4}}>
+              <defs>
+                <filter id="pathGlow">
+                  <feGaussianBlur stdDeviation={ls.onP===16?"6":"3"} result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <polyline
+                points={board.path.slice(0,ls.onP).map(([r,c])=>`${pd+c*(cellSz+gp)+cellSz/2},${pd+r*(cellSz+gp)+cellSz/2}`).join(" ")}
+                fill="none"
+                stroke={ls.onP===16?"#22D3EE":"#10B981"}
+                strokeWidth={ls.onP===16?4:2.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                strokeOpacity={ls.onP===16?0.9:0.5}
+                filter="url(#pathGlow)"
+              />
+              {ls.onP===16&&<polyline
+                points={board.path.map(([r,c])=>`${pd+c*(cellSz+gp)+cellSz/2},${pd+r*(cellSz+gp)+cellSz/2}`).join(" ")}
+                fill="none"
+                stroke="#22D3EE"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                strokeOpacity={0.3}
+                style={{animation:"pulseGlow 2s ease-in-out infinite"}}
+              />}
+            </svg>
+          )}
         </div>
       </div>
 
