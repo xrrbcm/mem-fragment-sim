@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { WALLETS } from "./wallets.js";
 
 /* ================================================================
@@ -380,10 +380,16 @@ export default function App(){
   const[gameInv,setGameInv]=useState([]);
   const[gameSelected,setGameSelected]=useState(null); // index in inventory
   const[gameBoardIdx,setGameBoardIdx]=useState(0);
-  const[gameCombos,setGameCombos]=useState([]);  // indices on board where combos are placed
+  const[gameCombos,setGameCombos]=useState([]);
   const[gameComboCount,setGameComboCount]=useState(3);
-  const[dragFrag,setDragFrag]=useState(null); // {frag, invIdx, x, y}
-  const[mousePos,setMousePos]=useState({x:0,y:0});
+  const[carrying,setCarrying]=useState(null); // {frag, invIdx} — fragment picked up and following cursor
+  const[cursorPos,setCursorPos]=useState({x:0,y:0});
+
+  // Global mouse tracking for carry mode
+  useEffect(()=>{
+    const onMove=(e)=>setCursorPos({x:e.clientX,y:e.clientY});
+    if(carrying){window.addEventListener("mousemove",onMove);return()=>window.removeEventListener("mousemove",onMove);}
+  },[carrying]);
 
   // Parse wallet data
   const holders=useMemo(()=>WALLETS.map(w=>({addr:w[0],short:w[0].slice(0,6)+"..."+w[0].slice(-4),tokens:w[1],cd:w[2],b:w[3],a:w[4],s:w[5],combos:w[6],badges:w[7]?w[7].split(","):[],comboNames:w[8]?w[8].split(",").filter(Boolean):[],totalFrags:w[2]+w[3]+w[4]+w[5]})),[]);
@@ -965,51 +971,8 @@ export default function App(){
 {/* ═══════════════════════ PHASE 6: INTERACTIVE GAME ═══════════════════════ */}
 {phase===6&&(()=>{
   const board=BOARDS[gameBoardIdx];
-  const cellSz=68,gap=4,pad=20;
-  const boardTotalW=cellSz*4+gap*3+pad*2;
-
-  const spawnFrag=(type)=>{setGameInv(prev=>[...prev,mkFrag(type,Date.now()+Math.random())]);};
-  const rotateFrag=(invIdx)=>{
-    setGameInv(prev=>{const n=[...prev];const f={...n[invIdx]};const rots=allRots(f.shape,f.notches);if(rots.length<=1)return prev;const ck=f.notches.sort().join(",");const ci=rots.findIndex(r=>[...r].sort().join(",")===ck);f.notches=[...rots[(ci+1)%rots.length]];n[invIdx]=f;return n;});
-  };
-
-  const dropOnBoard=(r,c)=>{
-    if(!dragFrag||gameBoard[r][c])return;
-    setGameBoard(prev=>{const n=prev.map(row=>[...row]);n[r][c]={...dragFrag.frag};return n;});
-    setGameInv(prev=>prev.filter((_,i)=>i!==dragFrag.invIdx));
-    setDragFrag(null);setGameSelected(null);
-  };
-
-  const removeFromBoard=(r,c)=>{
-    if(!gameBoard[r][c])return;
-    setGameInv(prev=>[...prev,gameBoard[r][c]]);
-    setGameBoard(prev=>{const n=prev.map(row=>[...row]);n[r][c]=null;return n;});
-  };
-  const toggleCombo=(r,c)=>{if(!gameBoard[r][c])return;const k=r*4+c;setGameCombos(prev=>prev.includes(k)?prev.filter(x=>x!==k):[...prev,k].slice(-gameComboCount));};
-  const resetGame=()=>{setGameBoard(Array.from({length:4},()=>Array(4).fill(null)));setGameInv([]);setGameSelected(null);setGameCombos([]);setDragFrag(null);};
-  const autoSolve=()=>{const all=[...gameInv];for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(gameBoard[r][c])all.push(gameBoard[r][c]);const{grid,usedIds}=solveBoard(board,all);setGameBoard(grid.map(row=>row.map(cell=>cell?{...cell}:null)));setGameInv(all.filter((_,i)=>!usedIds.has(i)));setGameSelected(null);setDragFrag(null);};
-
-  const startDrag=(e,frag,invIdx)=>{
-    e.preventDefault();
-    setDragFrag({frag,invIdx});setGameSelected(invIdx);
-    setMousePos({x:e.clientX,y:e.clientY});
-  };
-
-  const onMouseMove=(e)=>{if(dragFrag)setMousePos({x:e.clientX,y:e.clientY});};
-  const onMouseUp=()=>{if(dragFrag)setDragFrag(null);}; // drop nowhere = cancel
-
-  // Live score
-  const liveScore=(()=>{
-    const reqs=pathReqs(board);const pMap={};board.path.forEach(([r,c],i)=>pMap[`${r},${c}`]=i);
-    let onPath=0,pathPts=0,discPts=0,filled=0;
-    for(let i=0;i<16;i++){const{r,c,need}=reqs[i];const tile=gameBoard[r][c];if(tile&&canFit(tile.notches,need)){onPath++;pathPts+=tile.conn;}else break;}
-    for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(gameBoard[r][c])filled++;
-    for(let r=0;r<4;r++)for(let c=0;c<4;c++){const t=gameBoard[r][c];if(!t)continue;const pi=pMap[`${r},${c}`];if(pi===undefined||pi>=onPath)discPts+=t.disc;}
-    const fullB=filled===16?SC.FULL:0,hamB=onPath===16?SC.HAM:0;
-    let comboPts=0;
-    for(const key of gameCombos){const cr=key>>2,cc=key&3;const t=gameBoard[cr][cc];if(!t)continue;for(const n of t.notches){const[dr,dc]=DIRS[n];const nr=cr+dr,nc=cc+dc;if(nr>=0&&nr<4&&nc>=0&&nc<4&&gameBoard[nr][nc]&&gameBoard[nr][nc].notches.includes(OPP[n]))comboPts+=SC.COMBO;}}
-    return{pathPts,discPts,onPath,filled,fullB,hamB,comboPts,total:pathPts+discPts+fullB+hamB+comboPts};
-  })();
+  const cellSz=72,gp=5,pd=24;
+  const bW=cellSz*4+gp*3+pd*2;
 
   const fragImg=(shape,notches)=>{
     const ns=[...notches].sort().join(",");
@@ -1020,14 +983,57 @@ export default function App(){
     return F_IMG.crossSpecial;
   };
 
-  // Entry/exit positions in pixel coords
-  const entryR=board.entry.row,entryC=board.entry.col,entryD=board.entry.dir;
-  const exitR=board.exit.row,exitC=board.exit.col,exitD=board.exit.dir;
+  const spawnFrag=(type)=>setGameInv(p=>[...p,mkFrag(type,Date.now()+Math.random())]);
+  const pickUp=(frag,invIdx)=>{setCarrying({frag,invIdx});setGameSelected(invIdx);};
+  const cancelCarry=()=>{setCarrying(null);};
+  const placeOnBoard=(r,c)=>{
+    if(!carrying||gameBoard[r][c])return;
+    setGameBoard(p=>{const n=p.map(r=>[...r]);n[r][c]={...carrying.frag};return n;});
+    setGameInv(p=>p.filter((_,i)=>i!==carrying.invIdx));
+    setCarrying(null);setGameSelected(null);
+  };
+  const removeFromBoard=(r,c)=>{
+    if(!gameBoard[r][c])return;
+    setGameInv(p=>[...p,gameBoard[r][c]]);
+    setGameBoard(p=>{const n=p.map(r=>[...r]);n[r][c]=null;return n;});
+  };
+  const toggleCombo=(r,c)=>{if(!gameBoard[r][c])return;const k=r*4+c;setGameCombos(p=>p.includes(k)?p.filter(x=>x!==k):[...p,k].slice(-gameComboCount));};
+  const rotateFrag=(idx)=>{
+    setGameInv(p=>{const n=[...p];const f={...n[idx]};const rots=allRots(f.shape,f.notches);if(rots.length<=1)return p;const ck=[...f.notches].sort().join(",");const ci=rots.findIndex(r=>[...r].sort().join(",")===ck);f.notches=[...rots[(ci+1)%rots.length]];n[idx]=f;
+    if(carrying&&carrying.invIdx===idx)setCarrying({frag:f,invIdx:idx});return n;});
+  };
+  const resetGame=()=>{setGameBoard(Array.from({length:4},()=>Array(4).fill(null)));setGameInv([]);setGameSelected(null);setGameCombos([]);setCarrying(null);};
+  const autoSolve=()=>{const all=[...gameInv];for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(gameBoard[r][c])all.push(gameBoard[r][c]);const{grid,usedIds}=solveBoard(board,all);setGameBoard(grid.map(r=>r.map(c=>c?{...c}:null)));setGameInv(all.filter((_,i)=>!usedIds.has(i)));setGameSelected(null);setCarrying(null);};
 
-  return(<div onMouseMove={onMouseMove} onMouseUp={onMouseUp} style={{userSelect:"none",minHeight:500}}>
-    <h2 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>🎮 Interactive Board Builder</h2>
+  // Live score
+  const ls=(()=>{
+    const reqs=pathReqs(board);let onP=0,pP=0,dP=0,fl=0;
+    for(let i=0;i<16;i++){const{r,c,need}=reqs[i];const t=gameBoard[r][c];if(t&&canFit(t.notches,need)){onP++;pP+=t.conn;}else break;}
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(gameBoard[r][c])fl++;
+    const pMap={};board.path.forEach(([r,c],i)=>pMap[`${r},${c}`]=i);
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++){const t=gameBoard[r][c];if(!t)continue;const pi=pMap[`${r},${c}`];if(pi===undefined||pi>=onP)dP+=t.disc;}
+    const fB=fl===16?SC.FULL:0,hB=onP===16?SC.HAM:0;
+    let cP=0;for(const k of gameCombos){const cr=k>>2,cc=k&3;const t=gameBoard[cr][cc];if(!t)continue;for(const n of t.notches){const[dr,dc]=DIRS[n];const nr=cr+dr,nc=cc+dc;if(nr>=0&&nr<4&&nc>=0&&nc<4&&gameBoard[nr][nc]&&gameBoard[nr][nc].notches.includes(OPP[n]))cP+=SC.COMBO;}}
+    return{pP,dP,onP,fl,fB,hB,cP,tot:pP+dP+fB+hB+cP};
+  })();
+
+  const eR=board.entry.row,eC=board.entry.col,eD=board.entry.dir;
+  const xR=board.exit.row,xC=board.exit.col,xD=board.exit.dir;
+  // Marker position helper
+  const markerPos=(row,col,dir)=>{
+    const x=pd+col*(cellSz+gp)+cellSz/2;const y=pd+row*(cellSz+gp)+cellSz/2;
+    const off=cellSz/2+16;
+    if(dir==="N")return{mx:x,my:y-off};if(dir==="S")return{mx:x,my:y+off};
+    if(dir==="W")return{mx:x-off,my:y};return{mx:x+off,my:y};
+  };
+  const ep=markerPos(eR,eC,eD),xp=markerPos(xR,xC,xD);
+  const eCtr={x:pd+eC*(cellSz+gp)+cellSz/2,y:pd+eR*(cellSz+gp)+cellSz/2};
+  const xCtr={x:pd+xC*(cellSz+gp)+cellSz/2,y:pd+xR*(cellSz+gp)+cellSz/2};
+
+  return(<div>
+    <h2 style={{fontSize:15,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>🎮 Interactive Board Builder</h2>
     <p style={{fontSize:10,color:"#64748B",margin:"0 0 12px",lineHeight:1.6}}>
-      Drag fragments from inventory onto the board. Right-click to remove. Click placed tiles to toggle combo badges.
+      Click a fragment in inventory to pick it up — it follows your cursor. Click a board slot to place it. Right-click placed tiles to remove.
     </p>
 
     <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
@@ -1037,77 +1043,64 @@ export default function App(){
       <button onClick={autoSolve} style={{padding:"6px 14px",background:"#6366F130",border:"1px solid #6366F1",borderRadius:6,color:"#A78BFA",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>⚡ Auto-Solve</button>
       <button onClick={resetGame} style={{padding:"6px 14px",background:"#7F1D1D20",border:"1px solid #F8717140",borderRadius:6,color:"#F87171",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
       <div style={{fontSize:10,color:"#64748B"}}>Combos: <input type="number" min={0} max={20} value={gameComboCount} onChange={e=>setGameComboCount(Math.max(0,+e.target.value||0))} style={{background:"#0F172A",border:"1px solid #FF00E540",borderRadius:3,padding:"2px 4px",color:"#FF00E5",fontSize:10,width:32,textAlign:"center",fontFamily:"inherit"}}/></div>
+      {carrying&&<button onClick={cancelCarry} style={{padding:"6px 14px",background:"#F59E0B20",border:"1px solid #F59E0B",borderRadius:6,color:"#F59E0B",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕ Cancel</button>}
     </div>
 
     <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
-      {/* Board area */}
+      {/* Board */}
       <div>
-        {/* Live score */}
-        <div style={{background:"#111827",border:`2px solid ${liveScore.onPath===16?"#10B981":liveScore.filled===16?"#FBBF24":"#334155"}`,borderRadius:10,padding:12,marginBottom:10,textAlign:"center",width:boardTotalW}}>
-          <div style={{fontSize:36,fontWeight:900,color:"#F8FAFC",lineHeight:1}}>{liveScore.total}<span style={{fontSize:16,color:"#94A3B8"}}>pts</span></div>
-          <div style={{fontSize:9,color:"#94A3B8",marginTop:4}}>Path: {liveScore.pathPts} • Disc: {liveScore.discPts} • Full: {liveScore.fullB>0?"✓":"—"} • Ham: {liveScore.hamB>0?"✓":"—"} • Combo: {liveScore.comboPts}</div>
-          <div style={{fontSize:9,color:"#64748B",marginTop:2}}>{liveScore.onPath}/16 on path • {liveScore.filled}/16 filled</div>
+        {/* Score */}
+        <div style={{background:"#111827",border:`2px solid ${ls.onP===16?"#10B981":ls.fl===16?"#FBBF24":"#334155"}`,borderRadius:10,padding:12,marginBottom:10,textAlign:"center",width:bW}}>
+          <div style={{fontSize:38,fontWeight:900,color:"#F8FAFC",lineHeight:1}}>{ls.tot}<span style={{fontSize:16,color:"#94A3B8"}}>pts</span></div>
+          <div style={{fontSize:9,color:"#94A3B8",marginTop:4}}>Path: {ls.pP} • Disc: {ls.dP} • Full: {ls.fB>0?"✓":"—"} • Ham: {ls.hB>0?"✓":"—"} • Combo: {ls.cP}</div>
+          <div style={{fontSize:9,color:"#64748B",marginTop:2}}>{ls.onP}/16 on path • {ls.fl}/16 filled</div>
         </div>
 
-        {/* Board with entry/exit */}
-        <div style={{position:"relative",width:boardTotalW,paddingTop:14,paddingBottom:14}}>
-          {/* Entry marker */}
-          {(()=>{
-            const cx=pad+entryC*(cellSz+gap)+cellSz/2;
-            const cy=pad+entryR*(cellSz+gap)+cellSz/2;
-            const off=cellSz/2+12;
-            let ex=cx,ey=cy;
-            if(entryD==="N")ey=cy-off;else if(entryD==="S")ey=cy+off;else if(entryD==="W")ex=cx-off;else ex=cx+off;
-            return(<>
-              <div style={{position:"absolute",left:ex-16,top:ey-8+14,zIndex:3,fontSize:8,fontWeight:800,color:"#22D3EE",textAlign:"center",width:32}}>▸ IN</div>
-              <svg style={{position:"absolute",left:0,top:14,pointerEvents:"none",zIndex:2}} width={boardTotalW} height={cellSz*4+gap*3+pad*2}>
-                <line x1={ex} y1={ey} x2={cx} y2={cy} stroke="#22D3EE" strokeWidth={2} strokeDasharray="4 3"/>
-                <circle cx={ex} cy={ey} r={5} fill="#22D3EE"/>
-              </svg>
-            </>);
-          })()}
-          {/* Exit marker */}
-          {(()=>{
-            const cx=pad+exitC*(cellSz+gap)+cellSz/2;
-            const cy=pad+exitR*(cellSz+gap)+cellSz/2;
-            const off=cellSz/2+12;
-            let ex=cx,ey=cy;
-            if(exitD==="N")ey=cy-off;else if(exitD==="S")ey=cy+off;else if(exitD==="W")ex=cx-off;else ex=cx+off;
-            return(<>
-              <div style={{position:"absolute",left:ex-16,top:ey-8+14,zIndex:3,fontSize:8,fontWeight:800,color:"#F472B6",textAlign:"center",width:32}}>OUT ◆</div>
-              <svg style={{position:"absolute",left:0,top:14,pointerEvents:"none",zIndex:2}} width={boardTotalW} height={cellSz*4+gap*3+pad*2}>
-                <line x1={cx} y1={cy} x2={ex} y2={ey} stroke="#F472B6" strokeWidth={2} strokeDasharray="4 3"/>
-                <circle cx={ex} cy={ey} r={5} fill="#F472B6"/>
-              </svg>
-            </>);
-          })()}
+        {/* Board with entry/exit SVG overlay */}
+        <div style={{position:"relative",width:bW,height:cellSz*4+gp*3+pd*2}}>
+          {/* Entry/Exit SVG lines */}
+          <svg style={{position:"absolute",left:0,top:0,width:bW,height:cellSz*4+gp*3+pd*2,pointerEvents:"none",zIndex:5}}>
+            <defs>
+              <marker id="gae" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#22D3EE"/></marker>
+              <marker id="gax" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#F472B6"/></marker>
+            </defs>
+            {/* Entry line */}
+            <line x1={ep.mx} y1={ep.my} x2={eCtr.x} y2={eCtr.y} stroke="#22D3EE" strokeWidth={2.5} strokeDasharray="5 3" markerEnd="url(#gae)"/>
+            <circle cx={ep.mx} cy={ep.my} r={6} fill="#0A0F1C" stroke="#22D3EE" strokeWidth={2}/>
+            <text x={ep.mx} y={ep.my-10} textAnchor="middle" fill="#22D3EE" fontSize={10} fontWeight="800" fontFamily="monospace">IN</text>
+            {/* Exit line */}
+            <line x1={xCtr.x} y1={xCtr.y} x2={xp.mx} y2={xp.my} stroke="#F472B6" strokeWidth={2.5} strokeDasharray="5 3" markerEnd="url(#gax)"/>
+            <circle cx={xp.mx} cy={xp.my} r={6} fill="#0A0F1C" stroke="#F472B6" strokeWidth={2}/>
+            <text x={xp.mx} y={xp.my-10} textAnchor="middle" fill="#F472B6" fontSize={10} fontWeight="800" fontFamily="monospace">OUT</text>
+          </svg>
 
-          {/* 4x4 Grid */}
-          <div style={{display:"grid",gridTemplateColumns:`repeat(4,${cellSz}px)`,gridTemplateRows:`repeat(4,${cellSz}px)`,gap,background:"#111827",padding:pad,borderRadius:12,border:"2px solid #1E293B",position:"relative"}}>
+          {/* Grid */}
+          <div style={{display:"grid",gridTemplateColumns:`repeat(4,${cellSz}px)`,gridTemplateRows:`repeat(4,${cellSz}px)`,gap:gp,background:"#111827",padding:pd,borderRadius:12,border:"2px solid #1E293B",position:"relative",zIndex:1}}>
             {Array.from({length:16},(_,idx)=>{
               const r=idx>>2,c=idx&3;
               const tile=gameBoard[r][c];
               const pi=board.path.findIndex(([pr,pc])=>pr===r&&pc===c);
               const hasCombo=gameCombos.includes(r*4+c);
-              const isEntry=r===entryR&&c===entryC;
-              const isExit=r===exitR&&c===exitC;
+              const isEn=r===eR&&c===eC;const isEx=r===xR&&c===xC;
               return(
                 <div key={idx}
-                  onMouseUp={()=>dropOnBoard(r,c)}
-                  onClick={()=>{if(tile)toggleCombo(r,c);else if(gameSelected!==null){dropOnBoard(r,c);}}}
+                  onClick={()=>{if(carrying&&!tile)placeOnBoard(r,c);else if(tile&&!carrying)toggleCombo(r,c);}}
                   onContextMenu={e=>{e.preventDefault();removeFromBoard(r,c);}}
                   style={{
-                    width:cellSz,height:cellSz,borderRadius:6,cursor:dragFrag?"crosshair":"pointer",position:"relative",
-                    background:tile?(tile.conn>=40?"#1a1040":"#1E293B"):"#0F172A",
-                    border:isEntry?"2px solid #22D3EE50":isExit?"2px solid #F472B650":tile?`2px solid ${tile.cl}50`:`1px solid ${dragFrag?"#6366F150":"#1E293B"}`,
+                    width:cellSz,height:cellSz,borderRadius:7,
+                    cursor:carrying?(tile?"not-allowed":"copy"):"pointer",
+                    position:"relative",
+                    background:tile?(tile.conn>=40?"#1a1040":"#1E293B"):(carrying?"#0F172A":"#0A0F1C"),
+                    border:isEn?`2px solid #22D3EE60`:isEx?`2px solid #F472B660`:tile?`2px solid ${tile.cl}40`:`1px solid ${carrying?"#6366F140":"#1E293B50"}`,
                     display:"flex",alignItems:"center",justifyContent:"center",
-                    transition:"border-color 0.15s",
+                    transition:"border-color 0.15s, background 0.15s",
+                    boxShadow:carrying&&!tile?"inset 0 0 20px rgba(99,102,241,0.08)":"none",
                   }}>
                   {tile?(<>
-                    <img src={fragImg(tile.shape,tile.notches)} width={cellSz-10} height={cellSz-10} style={{opacity:0.9,pointerEvents:"none"}} alt=""/>
-                    {hasCombo&&<div style={{position:"absolute",width:16,height:16,borderRadius:"50%",background:"#FF00E5",border:"2px solid #FF00E580",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:2,pointerEvents:"none"}}/>}
+                    <img src={fragImg(tile.shape,tile.notches)} width={cellSz-12} height={cellSz-12} style={{opacity:0.9,pointerEvents:"none"}} alt=""/>
+                    {hasCombo&&<div style={{position:"absolute",width:18,height:18,borderRadius:"50%",background:"#FF00E5",border:"2px solid #FF00E580",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:3,pointerEvents:"none"}}/>}
                   </>):(
-                    <span style={{fontSize:9,color:"#334155",fontFamily:"monospace",pointerEvents:"none"}}>{pi>=0?pi+1:""}</span>
+                    <span style={{fontSize:10,color:carrying?"#6366F140":"#1E293B80",fontFamily:"monospace",fontWeight:700,pointerEvents:"none"}}>{pi>=0?pi+1:""}</span>
                   )}
                 </div>
               );
@@ -1116,8 +1109,9 @@ export default function App(){
         </div>
       </div>
 
-      {/* Inventory + Spawn */}
-      <div style={{width:280}}>
+      {/* Inventory */}
+      <div style={{width:290}}>
+        {/* Spawn */}
         <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:10,marginBottom:10}}>
           <h4 style={{fontSize:10,fontWeight:700,color:"#A78BFA",margin:"0 0 8px"}}>Spawn Fragments</h4>
           <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
@@ -1130,63 +1124,69 @@ export default function App(){
         </div>
 
         {/* Inventory grid */}
-        <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:10,maxHeight:420,overflowY:"auto"}}>
-          <h4 style={{fontSize:10,fontWeight:700,color:"#22D3EE",margin:"0 0 6px"}}>Inventory ({gameInv.length})</h4>
+        <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:10,maxHeight:440,overflowY:"auto"}}>
+          <h4 style={{fontSize:10,fontWeight:700,color:"#22D3EE",margin:"0 0 6px"}}>Inventory ({gameInv.length}) {carrying&&<span style={{color:"#F59E0B",fontWeight:400}}>— carrying fragment, click a board slot</span>}</h4>
           {gameInv.length===0&&<p style={{fontSize:9,color:"#475569"}}>Spawn fragments above to start.</p>}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:3}}>
-            {gameInv.map((f,i)=>(
-              <div key={f.id+"-"+i}
-                onMouseDown={e=>startDrag(e,f,i)}
-                onClick={()=>setGameSelected(gameSelected===i?null:i)}
-                style={{
-                  width:56,height:56,borderRadius:4,cursor:"grab",position:"relative",
-                  background:gameSelected===i?"#6366F130":"#0F172A",
-                  border:gameSelected===i?`2px solid #6366F1`:`1px solid ${f.cl}30`,
-                  display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-                  opacity:dragFrag?.invIdx===i?0.3:1,
-                }}>
-                <img src={fragImg(f.shape,f.notches)} width={36} height={36} style={{opacity:0.8,pointerEvents:"none"}} alt=""/>
-                <span style={{fontSize:6,color:f.cl,marginTop:1,pointerEvents:"none"}}>{f.tier}</span>
-              </div>
-            ))}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4}}>
+            {gameInv.map((f,i)=>{
+              const isCarrying=carrying&&carrying.invIdx===i;
+              return(
+                <div key={f.id+"-"+i}
+                  onClick={()=>{if(carrying&&carrying.invIdx===i){cancelCarry();}else{pickUp(f,i);}}}
+                  style={{
+                    width:58,height:58,borderRadius:5,cursor:isCarrying?"grabbing":"grab",position:"relative",
+                    background:isCarrying?"#6366F130":gameSelected===i?"#6366F115":"#0F172A",
+                    border:isCarrying?`2px solid #6366F1`:gameSelected===i?`2px solid #6366F160`:`1px solid ${f.cl}25`,
+                    display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                    opacity:isCarrying?0.4:1,
+                    transition:"all 0.1s",
+                  }}>
+                  <img src={fragImg(f.shape,f.notches)} width={38} height={38} style={{opacity:0.85,pointerEvents:"none"}} alt=""/>
+                  <span style={{fontSize:6,color:f.cl,marginTop:1,pointerEvents:"none"}}>{f.tier}</span>
+                </div>
+              );
+            })}
           </div>
-          {gameSelected!==null&&gameInv[gameSelected]&&(
+          {/* Selected fragment info */}
+          {gameSelected!==null&&gameInv[gameSelected]&&!carrying&&(
             <div style={{marginTop:8,padding:8,background:"#0F172A",borderRadius:6,border:"1px solid #6366F140"}}>
               <div style={{fontSize:9,color:"#A78BFA",fontWeight:600,marginBottom:3}}>Selected: {FL[gameInv[gameSelected].type]}</div>
               <div style={{fontSize:8,color:"#94A3B8"}}>Notches: {gameInv[gameSelected].notches.join(", ")}</div>
-              <div style={{fontSize:8,color:gameInv[gameSelected].shape==="T-piece"?"#F59E0B":"#94A3B8"}}>
-                {gameInv[gameSelected].shape==="T-piece"?"🔒 Locked — cannot rotate":gameInv[gameSelected].shape==="Cross"?"All sides open — rotation irrelevant":"Click Rotate to change orientation"}
+              <div style={{display:"flex",gap:6,marginTop:4}}>
+                {gameInv[gameSelected].shape!=="T-piece"&&gameInv[gameSelected].shape!=="Cross"&&(
+                  <button onClick={()=>rotateFrag(gameSelected)} style={{padding:"3px 10px",background:"#6366F120",border:"1px solid #6366F1",borderRadius:4,color:"#A78BFA",fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>⟳ Rotate</button>
+                )}
+                <button onClick={()=>pickUp(gameInv[gameSelected],gameSelected)} style={{padding:"3px 10px",background:"#22D3EE20",border:"1px solid #22D3EE",borderRadius:4,color:"#22D3EE",fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>Pick Up</button>
               </div>
-              {gameInv[gameSelected].shape!=="T-piece"&&gameInv[gameSelected].shape!=="Cross"&&(
-                <button onClick={()=>rotateFrag(gameSelected)} style={{marginTop:4,padding:"3px 10px",background:"#6366F120",border:"1px solid #6366F1",borderRadius:4,color:"#A78BFA",fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>⟳ Rotate</button>
-              )}
+              {gameInv[gameSelected].shape==="T-piece"&&<div style={{fontSize:8,color:"#F59E0B",marginTop:3}}>🔒 Locked — cannot rotate</div>}
             </div>
           )}
         </div>
       </div>
     </div>
 
-    {/* Drag ghost */}
-    {dragFrag&&(<div style={{position:"fixed",left:mousePos.x-28,top:mousePos.y-28,width:56,height:56,pointerEvents:"none",zIndex:1000,opacity:0.85,filter:"drop-shadow(0 4px 12px rgba(99,102,241,0.5))"}}>
-      <img src={fragImg(dragFrag.frag.shape,dragFrag.frag.notches)} width={56} height={56} alt=""/>
+    {/* Floating cursor fragment */}
+    {carrying&&(<div style={{position:"fixed",left:cursorPos.x-30,top:cursorPos.y-30,width:60,height:60,pointerEvents:"none",zIndex:9999,opacity:0.9,filter:"drop-shadow(0 0 16px rgba(99,102,241,0.6)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))",transition:"left 0.02s,top 0.02s"}}>
+      <img src={fragImg(carrying.frag.shape,carrying.frag.notches)} width={60} height={60} alt="" style={{pointerEvents:"none"}}/>
     </div>)}
 
     {/* Instructions */}
     <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:12,marginTop:12}}>
       <h4 style={{fontSize:10,fontWeight:700,color:"#64748B",margin:"0 0 6px"}}>How to Play</h4>
-      <div style={{fontSize:9,color:"#475569",lineHeight:1.7,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:8}}>
-        <div><b style={{color:"#94A3B8"}}>Drag & Drop:</b> Drag a fragment from inventory onto any empty board slot</div>
-        <div><b style={{color:"#94A3B8"}}>Click to Place:</b> Or click a fragment to select, then click a slot</div>
-        <div><b style={{color:"#94A3B8"}}>Rotate:</b> Select a fragment and click Rotate (T-pieces are locked 🔒)</div>
-        <div><b style={{color:"#94A3B8"}}>Remove:</b> Right-click any placed tile to return it to inventory</div>
-        <div><b style={{color:"#94A3B8"}}>Combo:</b> Click a placed tile to toggle combo badge (pink dot)</div>
-        <div><b style={{color:"#94A3B8"}}>Entry/Exit:</b> <span style={{color:"#22D3EE"}}>Cyan ▸</span> = Entry, <span style={{color:"#F472B6"}}>Pink ◆</span> = Exit</div>
-        <div><b style={{color:"#94A3B8"}}>Auto-Solve:</b> Let the AI find optimal placement for your inventory</div>
-        <div><b style={{color:"#94A3B8"}}>Score:</b> Updates in real-time — build the path from entry to exit!</div>
+      <div style={{fontSize:9,color:"#475569",lineHeight:1.8,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:8}}>
+        <div><b style={{color:"#22D3EE"}}>1. Pick Up:</b> Click a fragment in inventory — it attaches to your cursor</div>
+        <div><b style={{color:"#22D3EE"}}>2. Place:</b> Click an empty board slot to drop the fragment</div>
+        <div><b style={{color:"#22D3EE"}}>3. Cancel:</b> Click the same fragment again or press Cancel to put it back</div>
+        <div><b style={{color:"#22D3EE"}}>4. Rotate:</b> Select (don't pick up) and click Rotate. T-pieces are 🔒 locked</div>
+        <div><b style={{color:"#22D3EE"}}>5. Remove:</b> Right-click any placed tile to return it to inventory</div>
+        <div><b style={{color:"#22D3EE"}}>6. Combo:</b> Click a placed tile to toggle combo badge (pink dot)</div>
+        <div><b style={{color:"#F472B6"}}>Entry/Exit:</b> <span style={{color:"#22D3EE"}}>● IN</span> = path start, <span style={{color:"#F472B6"}}>● OUT</span> = path end</div>
+        <div><b style={{color:"#A78BFA"}}>Auto-Solve:</b> Let the AI find optimal placement for your fragments</div>
       </div>
     </div>
   </div>);
 })()}
+
 
 {running&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200}}>
   <div style={{background:"#1E293B",padding:20,borderRadius:10,textAlign:"center",border:"1px solid #334155"}}>
