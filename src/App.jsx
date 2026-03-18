@@ -384,6 +384,7 @@ export default function App(){
   const[gameComboCount,setGameComboCount]=useState(3);
   const[carrying,setCarrying]=useState(null); // {frag, invIdx} — fragment picked up and following cursor
   const[cursorPos,setCursorPos]=useState({x:0,y:0});
+  const[placeFx,setPlaceFx]=useState(null); // {r,c,key} for lottie placement animation
 
   // Global mouse tracking for carry mode
   useEffect(()=>{
@@ -982,8 +983,6 @@ export default function App(){
     if(shape==="T-piece")return!notches.includes("S")?F_IMG.tpieceWNE:F_IMG.tpieceWSE;
     return F_IMG.crossSpecial;
   };
-
-  const[placeFx,setPlaceFx]=useState(null); // {r,c,key} for lottie animation
 
   const spawnFrag=(type)=>setGameInv(p=>[...p,mkFrag(type,Date.now()+Math.random())]);
   const pickUp=(frag,invIdx)=>{setCarrying({frag,invIdx});setGameSelected(invIdx);};
