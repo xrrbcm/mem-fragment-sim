@@ -452,7 +452,7 @@ export default function App(){
 
   const css=`*{margin:0;padding:0;box-sizing:border-box}body{background:#0A0F1C}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:1}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}@keyframes pulseGlow{0%,100%{stroke-opacity:0.2;stroke-width:2}50%{stroke-opacity:0.6;stroke-width:4}}`;
 
-  const tb=(p,l)=>(<button onClick={()=>{if(p===5||p===6)setPhase(p);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
+  const tb=(p,l)=>(<button onClick={()=>{if(p===5||p===6||p===7)setPhase(p);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
 
   return(
     <div style={{minHeight:"100vh",background:"#0A0F1C",color:"#E2E8F0",fontFamily:"'SF Mono','Cascadia Code','JetBrains Mono',monospace"}}>
@@ -463,7 +463,7 @@ export default function App(){
             <h1 style={{fontSize:16,fontWeight:800,background:"linear-gradient(90deg,#22D3EE,#A78BFA,#F472B6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>MEM Fragment Board System</h1>
             <p style={{fontSize:8,color:"#64748B",marginTop:1,letterSpacing:2,textTransform:"uppercase"}}>V1 Phase A • Progressive • A/B Corners • Locked T-Pieces</p>
           </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}{tb(5,"Real Holders")}{tb(6,"🎮 Game")}</div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}{tb(5,"Real Holders")}{tb(6,"🎮 Game")}{tb(7,"📈 Progression")}</div>
         </div>
       </div>
 
@@ -1228,6 +1228,251 @@ export default function App(){
     </div>
   </div>);
 })()}
+
+{/* ═══════════════════════ PHASE 7: PROGRESSION BOARDS ═══════════════════════ */}
+{phase===7&&(<div>
+  <h2 style={{fontSize:15,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>📈 Idea: Progressive Board System</h2>
+  <p style={{fontSize:10,color:"#64748B",margin:"0 0 16px",lineHeight:1.7,maxWidth:700}}>
+    Instead of starting with a daunting 4×4 board, collectors progress through smaller boards first.
+    This gives <b style={{color:"#22D3EE"}}>early dopamine rewards</b> to single-character holders before they face the full challenge.
+  </p>
+
+  {/* Visual progression with your SVGs */}
+  <div style={{display:"flex",gap:16,alignItems:"flex-end",justifyContent:"center",marginBottom:24,flexWrap:"wrap"}}>
+    {[
+      {size:"1×1",slots:1,img:null,color:"#34D399",unlock:1,desc:"Place your first badge"},
+      {size:"2×2",slots:4,img:F_IMG.board2x2,color:"#22D3EE",unlock:4,desc:"First real puzzle"},
+      {size:"3×3",slots:9,img:F_IMG.board3x3,color:"#F59E0B",unlock:9,desc:"Strategic challenge"},
+      {size:"4×4",slots:16,img:F_IMG.board4x4,color:"#EC4899",unlock:16,desc:"The ultimate goal"},
+    ].map((b,i)=>(
+      <div key={i} style={{textAlign:"center"}}>
+        <div style={{background:"#111827",border:`2px solid ${b.color}40`,borderRadius:12,padding:12,marginBottom:8,width:i===0?80:i===1?120:i===2?160:200,height:i===0?80:i===1?120:i===2?160:200,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {b.img?<img src={b.img} width={i===1?90:i===2?130:170} height={i===1?90:i===2?130:170} style={{opacity:0.8}} alt=""/>:(
+            <div style={{width:40,height:40,borderRadius:6,background:"#1E293B",border:`2px solid ${b.color}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🏅</div>
+          )}
+        </div>
+        <div style={{fontSize:14,fontWeight:800,color:b.color}}>{b.size}</div>
+        <div style={{fontSize:9,color:"#94A3B8"}}>{b.slots} slot{b.slots>1?"s":""}</div>
+        <div style={{fontSize:8,color:"#64748B",marginTop:2}}>{b.desc}</div>
+        {i<3&&<div style={{fontSize:16,color:"#334155",marginTop:6}}>→</div>}
+      </div>
+    ))}
+  </div>
+
+  {/* Progression overview */}
+  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12,marginBottom:20}}>
+    {/* Board 1: 1×1 */}
+    <div style={{background:"#111827",border:"1px solid #34D39940",borderLeft:"3px solid #34D399",borderRadius:10,padding:16}}>
+      <h3 style={{fontSize:13,fontWeight:700,color:"#34D399",margin:"0 0 6px"}}>Stage 1: 1×1 Board</h3>
+      <div style={{fontSize:10,color:"#CBD5E1",lineHeight:1.7,marginBottom:8}}>
+        <b>Unlock:</b> Earn your first badge (any badge)<br/>
+        <b>Goal:</b> Place 1 fragment in 1 slot<br/>
+        <b>Completion rate:</b> 100% of holders<br/>
+        <b>Scoring:</b> Fragment value only (10–40 pts)
+      </div>
+      <div style={{fontSize:9,color:"#94A3B8",lineHeight:1.6}}>
+        <b style={{color:"#34D399"}}>Purpose:</b> Instant gratification. The moment you earn any badge, you can complete a board.
+        Every collector feels the reward loop from day one. No path routing needed — just place and score.
+      </div>
+    </div>
+
+    {/* Board 2: 2×2 */}
+    <div style={{background:"#111827",border:"1px solid #22D3EE40",borderLeft:"3px solid #22D3EE",borderRadius:10,padding:16}}>
+      <h3 style={{fontSize:13,fontWeight:700,color:"#22D3EE",margin:"0 0 6px"}}>Stage 2: 2×2 Board</h3>
+      <div style={{fontSize:10,color:"#CBD5E1",lineHeight:1.7,marginBottom:8}}>
+        <b>Unlock:</b> 4 total badges (earn ~2 Special + have ~2 trait badges)<br/>
+        <b>Goal:</b> Fill 4 slots with a valid path<br/>
+        <b>Reachable by:</b> ~85% of holders with action badges<br/>
+        <b>Hamiltonian:</b> Simple 4-step path, 2 entry/exit points
+      </div>
+      <div style={{fontSize:9,color:"#94A3B8",lineHeight:1.6}}>
+        <b style={{color:"#22D3EE"}}>Purpose:</b> First real puzzle. Introduces notch connections and path routing.
+        Single-holders with 2-3 trait badges + Profile Complete + First Claim reach this immediately.
+        The 2×2 has only 3 turns max — very forgiving.
+      </div>
+    </div>
+
+    {/* Board 3: 3×3 */}
+    <div style={{background:"#111827",border:"1px solid #F59E0B40",borderLeft:"3px solid #F59E0B",borderRadius:10,padding:16}}>
+      <h3 style={{fontSize:13,fontWeight:700,color:"#F59E0B",margin:"0 0 6px"}}>Stage 3: 3×3 Board</h3>
+      <div style={{fontSize:10,color:"#CBD5E1",lineHeight:1.7,marginBottom:8}}>
+        <b>Unlock:</b> 9 total badges<br/>
+        <b>Goal:</b> Fill 9 slots with a Hamiltonian path<br/>
+        <b>Reachable by:</b> ~40% with action badges, ~15% trait-only<br/>
+        <b>Hamiltonian:</b> Multiple valid paths, 4-6 turns
+      </div>
+      <div style={{fontSize:9,color:"#94A3B8",lineHeight:1.6}}>
+        <b style={{color:"#F59E0B"}}>Purpose:</b> Strategic depth begins. Corners and T-pieces become important.
+        A/B corner distinction starts to matter. This is where active single-holders
+        (with all 8 Special + 2 Unique = 10 action badges) hit a wall unless they have good trait badges.
+      </div>
+    </div>
+
+    {/* Board 4: 4×4 */}
+    <div style={{background:"#111827",border:"1px solid #EC489940",borderLeft:"3px solid #EC4899",borderRadius:10,padding:16}}>
+      <h3 style={{fontSize:13,fontWeight:700,color:"#EC4899",margin:"0 0 6px"}}>Stage 4: 4×4 Board</h3>
+      <div style={{fontSize:10,color:"#CBD5E1",lineHeight:1.7,marginBottom:8}}>
+        <b>Unlock:</b> 16 total badges<br/>
+        <b>Goal:</b> Fill 16 slots with Hamiltonian path<br/>
+        <b>Reachable by:</b> ~6.2% trait-only, ~25% with action badges<br/>
+        <b>Hamiltonian:</b> 6-12 turns depending on board difficulty
+      </div>
+      <div style={{fontSize:9,color:"#94A3B8",lineHeight:1.6}}>
+        <b style={{color:"#EC4899"}}>Purpose:</b> The aspirational endgame. Perfect clears here are legendary achievements.
+        This is where the full system shines: A/B corner strategy, T-piece lock decisions,
+        combo transistor stacking, progressive board consumption.
+      </div>
+    </div>
+  </div>
+
+  {/* Mathematical Balancing */}
+  <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:16,marginBottom:16}}>
+    <h3 style={{fontSize:13,fontWeight:700,color:"#A78BFA",margin:"0 0 12px"}}>📊 Mathematical Balancing</h3>
+
+    {/* Unlock thresholds */}
+    <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 8px"}}>Unlock Thresholds</h4>
+    <table style={{width:"100%",maxWidth:600,borderCollapse:"collapse",fontSize:10,marginBottom:16}}>
+      <thead><tr style={{color:"#64748B"}}>
+        {["Stage","Board","Badges Required","Avg Single Holder","Reachable %"].map(h=><th key={h} style={{padding:"5px 8px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:9}}>{h}</th>)}
+      </tr></thead>
+      <tbody>
+        {[
+          ["1","1×1","1","2.9 trait + 2 action = ~5","~100%"],
+          ["2","2×2","4","Same — already unlocked","~95%"],
+          ["3","3×3","9","2.9 trait + 8 action = ~11","~70% (with action grind)"],
+          ["4","4×4","16","2.9 trait + 13 action = ~16","~25% (needs Unique + Hidden)"],
+        ].map(([stage,board,req,avg,pct],i)=>(
+          <tr key={i}>
+            <td style={{padding:"6px 8px",textAlign:"center",color:["#34D399","#22D3EE","#F59E0B","#EC4899"][i],fontWeight:700}}>{stage}</td>
+            <td style={{padding:"6px 8px",textAlign:"center"}}>{board}</td>
+            <td style={{padding:"6px 8px",textAlign:"center",fontWeight:600}}>{req}</td>
+            <td style={{padding:"6px 8px",textAlign:"center",color:"#94A3B8",fontSize:9}}>{avg}</td>
+            <td style={{padding:"6px 8px",textAlign:"center",color:["#34D399","#22D3EE","#F59E0B","#EC4899"][i]}}>{pct}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {/* Scoring per stage */}
+    <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 8px"}}>Scoring by Stage</h4>
+    <table style={{width:"100%",maxWidth:700,borderCollapse:"collapse",fontSize:10,marginBottom:16}}>
+      <thead><tr style={{color:"#64748B"}}>
+        {["Board","Max Base Score","Full Board Bonus","Perfect Clear Bonus","Max Combo (4-notch host)","Max Total"].map(h=><th key={h} style={{padding:"5px 6px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:8}}>{h}</th>)}
+      </tr></thead>
+      <tbody>
+        {[
+          ["1×1",40,0,0,0,40],
+          ["2×2",160,"+25","+50",60,295],
+          ["3×3",360,"+40","+75",135,610],
+          ["4×4",640,"+50","+100",240,1030],
+        ].map(([board,base,full,pc,combo,max],i)=>(
+          <tr key={i}>
+            <td style={{padding:"6px",textAlign:"center",color:["#34D399","#22D3EE","#F59E0B","#EC4899"][i],fontWeight:700}}>{board}</td>
+            <td style={{padding:"6px",textAlign:"center"}}>{base}</td>
+            <td style={{padding:"6px",textAlign:"center",color:"#34D399"}}>{full}</td>
+            <td style={{padding:"6px",textAlign:"center",color:"#FBBF24"}}>{pc}</td>
+            <td style={{padding:"6px",textAlign:"center",color:"#FF00E5"}}>{combo}</td>
+            <td style={{padding:"6px",textAlign:"center",fontWeight:700,color:"#F8FAFC"}}>{max}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {/* Reward pacing */}
+    <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 8px"}}>Reward Pacing Analysis</h4>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:10}}>
+      <div style={{background:"#0F172A",borderRadius:8,padding:12}}>
+        <h5 style={{fontSize:10,fontWeight:700,color:"#34D399",margin:"0 0 6px"}}>Early Game (Stages 1-2)</h5>
+        <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.7}}>
+          <b>Points per badge earned:</b> ~8-40 pts (high marginal value)<br/>
+          <b>Time to complete:</b> Minutes (just claim badges)<br/>
+          <b>Dopamine frequency:</b> Very high — every badge immediately improves the board<br/>
+          <b>Anti-exploit:</b> Low max score means farming here has diminishing returns. One-time perfect clear bonus.
+        </p>
+      </div>
+      <div style={{background:"#0F172A",borderRadius:8,padding:12}}>
+        <h5 style={{fontSize:10,fontWeight:700,color:"#F59E0B",margin:"0 0 6px"}}>Mid Game (Stage 3)</h5>
+        <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.7}}>
+          <b>Points per badge earned:</b> ~15-30 pts (moderate value)<br/>
+          <b>Time to complete:</b> Days to weeks (action badge grind)<br/>
+          <b>Dopamine frequency:</b> Medium — each new badge opens more placement options<br/>
+          <b>Strategic depth:</b> Corner type starts mattering. First real rotation decisions.
+        </p>
+      </div>
+      <div style={{background:"#0F172A",borderRadius:8,padding:12}}>
+        <h5 style={{fontSize:10,fontWeight:700,color:"#EC4899",margin:"0 0 6px"}}>End Game (Stage 4)</h5>
+        <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.7}}>
+          <b>Points per badge earned:</b> ~10-25 pts (lower marginal but combo potential high)<br/>
+          <b>Time to complete:</b> Weeks to months<br/>
+          <b>Dopamine frequency:</b> Low but intense — perfect clears are legendary moments<br/>
+          <b>Strategic depth:</b> Full system: A/B corners, T-piece lock, combo stacking, board selection.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Anti-Exploitation Recommendations */}
+  <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:16,marginBottom:16}}>
+    <h3 style={{fontSize:13,fontWeight:700,color:"#F87171",margin:"0 0 10px"}}>🛡️ Anti-Exploitation Safeguards</h3>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:10,fontSize:10,color:"#CBD5E1",lineHeight:1.7}}>
+      <div>
+        <b style={{color:"#F8FAFC"}}>1. One-time Perfect Clear Bonus</b><br/>
+        Each board size awards its perfect clear bonus only once. Replaying a completed board doesn't re-earn the +50/+75/+100 bonus.
+      </div>
+      <div>
+        <b style={{color:"#F8FAFC"}}>2. Progressive Consumption</b><br/>
+        Fragments used on smaller boards are locked there. You can't recycle a 1×1 completion to fill your 4×4.
+      </div>
+      <div>
+        <b style={{color:"#F8FAFC"}}>3. Diminishing Returns on Small Boards</b><br/>
+        After first clear, replaying 1×1 and 2×2 gives only base fragment score (no bonuses). Incentivizes progression.
+      </div>
+      <div>
+        <b style={{color:"#F8FAFC"}}>4. Stage Unlock Gates</b><br/>
+        Must complete the previous stage before unlocking the next. Can't skip to 4×4. Forces players through the learning curve.
+      </div>
+      <div>
+        <b style={{color:"#F8FAFC"}}>5. Seasonal Board Rotation</b><br/>
+        New board layouts each season within each size. Prevents memorized solutions. Keeps the puzzle fresh.
+      </div>
+      <div>
+        <b style={{color:"#F8FAFC"}}>6. Badge Burn Prevention</b><br/>
+        Action badges (Special/Unique) are permanent — they can't be traded or burned. This prevents market manipulation of the badge supply.
+      </div>
+    </div>
+  </div>
+
+  {/* Additional Ideas */}
+  <div style={{background:"#111827",border:"1px solid #6366F140",borderLeft:"3px solid #6366F1",borderRadius:10,padding:16}}>
+    <h3 style={{fontSize:13,fontWeight:700,color:"#6366F1",margin:"0 0 10px"}}>💡 Additional Progression Ideas</h3>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:10,fontSize:10,color:"#CBD5E1",lineHeight:1.7}}>
+      <div>
+        <b style={{color:"#FBBF24"}}>Fragment Echo</b><br/>
+        Completing a board returns 1 random low-tier fragment to your inventory. Encourages replaying boards while providing a small resource trickle for harder boards.
+      </div>
+      <div>
+        <b style={{color:"#22D3EE"}}>Mastery Stars</b><br/>
+        Each board size has 3 mastery levels: ★ (complete), ★★ (full board), ★★★ (perfect clear). Visible on profile. Social bragging rights.
+      </div>
+      <div>
+        <b style={{color:"#EC4899"}}>Challenge Boards</b><br/>
+        Weekly limited-time boards with unusual entry/exit positions or restricted fragment types. Leaderboard scoring. Creates recurring engagement.
+      </div>
+      <div>
+        <b style={{color:"#10B981"}}>Mentor System</b><br/>
+        Whales who've completed 4×4 can "mentor" single-holders by gifting a temporary fragment loan. Builds community while giving whales a purpose beyond hoarding.
+      </div>
+      <div>
+        <b style={{color:"#F59E0B"}}>Seasonal Themes</b><br/>
+        Each season introduces new visual themes for boards and fragments. Collectors who complete all boards in a season earn a unique seasonal combo badge.
+      </div>
+      <div>
+        <b style={{color:"#A78BFA"}}>Probability Balancing</b><br/>
+        T-piece orientation could be weighted by board difficulty: easy boards issue more favorable orientations, hard boards are truly random. This prevents frustration early while maintaining challenge later.
+      </div>
+    </div>
+  </div>
+</div>)}
 
 
 {running&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200}}>
