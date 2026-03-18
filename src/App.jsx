@@ -375,6 +375,13 @@ export default function App(){
   const[holderSearch,setHolderSearch]=useState("");
   const[selectedHolder,setSelectedHolder]=useState(null);
   const[holderSim,setHolderSim]=useState(null);
+  // Game state
+  const[gameBoard,setGameBoard]=useState(()=>Array.from({length:4},()=>Array(4).fill(null)));
+  const[gameInv,setGameInv]=useState([]);
+  const[gameSelected,setGameSelected]=useState(null); // index in inventory
+  const[gameBoardIdx,setGameBoardIdx]=useState(0);
+  const[gameCombos,setGameCombos]=useState([]);  // indices on board where combos are placed
+  const[gameComboCount,setGameComboCount]=useState(3);
 
   // Parse wallet data
   const holders=useMemo(()=>WALLETS.map(w=>({addr:w[0],short:w[0].slice(0,6)+"..."+w[0].slice(-4),tokens:w[1],cd:w[2],b:w[3],a:w[4],s:w[5],combos:w[6],badges:w[7]?w[7].split(","):[],comboNames:w[8]?w[8].split(",").filter(Boolean):[],totalFrags:w[2]+w[3]+w[4]+w[5]})),[]);
@@ -436,7 +443,7 @@ export default function App(){
 
   const css=`*{margin:0;padding:0;box-sizing:border-box}body{background:#0A0F1C}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:1}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}`;
 
-  const tb=(p,l)=>(<button onClick={()=>{if(p===5)setPhase(5);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
+  const tb=(p,l)=>(<button onClick={()=>{if(p===5||p===6)setPhase(p);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
 
   return(
     <div style={{minHeight:"100vh",background:"#0A0F1C",color:"#E2E8F0",fontFamily:"'SF Mono','Cascadia Code','JetBrains Mono',monospace"}}>
@@ -447,7 +454,7 @@ export default function App(){
             <h1 style={{fontSize:16,fontWeight:800,background:"linear-gradient(90deg,#22D3EE,#A78BFA,#F472B6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>MEM Fragment Board System</h1>
             <p style={{fontSize:8,color:"#64748B",marginTop:1,letterSpacing:2,textTransform:"uppercase"}}>V1 Phase A • Progressive • A/B Corners • Locked T-Pieces</p>
           </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}{tb(5,"Real Holders")}</div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}{tb(5,"Real Holders")}{tb(6,"🎮 Game")}</div>
         </div>
       </div>
 
@@ -952,6 +959,252 @@ export default function App(){
     </div>
   </div>
 </div>)}
+
+{/* ═══════════════════════ PHASE 6: INTERACTIVE GAME ═══════════════════════ */}
+{phase===6&&(()=>{
+  // Game helper functions
+  const board=BOARDS[gameBoardIdx];
+  const cellSz=64,gap=4,pad=16;
+  const gridW=cellSz*4+gap*3;
+
+  const spawnFrag=(type)=>{
+    const f=mkFrag(type,Date.now()+Math.random());
+    setGameInv(prev=>[...prev,f]);
+  };
+
+  const rotateFrag=(invIdx)=>{
+    setGameInv(prev=>{
+      const n=[...prev];const f={...n[invIdx]};
+      const rots=allRots(f.shape,f.notches);
+      if(rots.length<=1)return prev; // locked or irrelevant
+      const curKey=f.notches.sort().join(",");
+      const curIdx=rots.findIndex(r=>[...r].sort().join(",")===curKey);
+      const nextIdx=(curIdx+1)%rots.length;
+      f.notches=[...rots[nextIdx]];
+      n[invIdx]=f;return n;
+    });
+  };
+
+  const placeOnBoard=(r,c)=>{
+    if(gameSelected===null)return;
+    if(gameBoard[r][c])return; // already occupied
+    const frag=gameInv[gameSelected];
+    setGameBoard(prev=>{const n=prev.map(row=>[...row]);n[r][c]={...frag};return n;});
+    setGameInv(prev=>prev.filter((_,i)=>i!==gameSelected));
+    setGameSelected(null);
+  };
+
+  const removeFromBoard=(r,c)=>{
+    if(!gameBoard[r][c])return;
+    const frag=gameBoard[r][c];
+    setGameInv(prev=>[...prev,frag]);
+    setGameBoard(prev=>{const n=prev.map(row=>[...row]);n[r][c]=null;return n;});
+  };
+
+  const toggleCombo=(r,c)=>{
+    if(!gameBoard[r][c])return;
+    const key=r*4+c;
+    setGameCombos(prev=>prev.includes(key)?prev.filter(k=>k!==key):[...prev,key].slice(-gameComboCount));
+  };
+
+  const resetGame=()=>{
+    setGameBoard(Array.from({length:4},()=>Array(4).fill(null)));
+    setGameInv([]);setGameSelected(null);setGameCombos([]);
+  };
+
+  const autoSolve=()=>{
+    const frags=[...gameInv];
+    // Also collect any already-placed frags back
+    const allFrags=[...frags];
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(gameBoard[r][c])allFrags.push(gameBoard[r][c]);
+    const{grid,usedIds}=solveBoard(board,allFrags);
+    setGameBoard(grid.map(row=>row.map(cell=>cell?{...cell}:null)));
+    const remaining=allFrags.filter((_,i)=>!usedIds.has(i));
+    setGameInv(remaining);setGameSelected(null);
+  };
+
+  // Calculate live score
+  const liveScore=(()=>{
+    // Find longest continuous path from entry
+    const reqs=pathReqs(board);
+    const pMap={};board.path.forEach(([r,c],i)=>pMap[`${r},${c}`]=i);
+    let onPath=0,pathPts=0,discPts=0,filled=0;
+    // Check which placed tiles match the Hamiltonian path requirements
+    for(let i=0;i<16;i++){
+      const{r,c,need}=reqs[i];
+      const tile=gameBoard[r][c];
+      if(tile&&canFit(tile.notches,need)){onPath++;pathPts+=tile.conn;}
+      else if(tile){break;} // path broken
+      else break;
+    }
+    // Count all placed tiles
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(gameBoard[r][c])filled++;
+    // Disconnected tiles
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+      const t=gameBoard[r][c];if(!t)continue;
+      const pi=pMap[`${r},${c}`];
+      if(pi===undefined||pi>=onPath)discPts+=t.disc;
+    }
+    const fullB=filled===16?SC.FULL:0;
+    const hamB=onPath===16?SC.HAM:0;
+    // Combo scoring
+    let comboPts=0;
+    for(const key of gameCombos){
+      const cr=key>>2,cc=key&3;const t=gameBoard[cr][cc];if(!t)continue;
+      for(const n of t.notches){
+        const[dr,dc]=DIRS[n];const nr=cr+dr,nc=cc+dc;
+        if(nr>=0&&nr<4&&nc>=0&&nc<4&&gameBoard[nr][nc]&&gameBoard[nr][nc].notches.includes(OPP[n]))comboPts+=SC.COMBO;
+      }
+    }
+    return{pathPts,discPts,onPath,filled,fullB,hamB,comboPts,total:pathPts+discPts+fullB+hamB+comboPts};
+  })();
+
+  const fragImg=(shape,notches,sz=28)=>{
+    // Map to SVG file based on shape and notches
+    const ns=[...notches].sort().join(",");
+    if(shape==="Straight") return ns.includes("N")?F_IMG.straightNS:F_IMG.straightWE;
+    if(shape==="CornerB") return ns.includes("W")?F_IMG.cornerWN:F_IMG.cornerNE;
+    if(shape==="CornerA") return ns.includes("W")?F_IMG.cornerWS:F_IMG.cornerSE;
+    if(shape==="T-piece"){
+      if(!notches.includes("S"))return F_IMG.tpieceWNE;
+      return F_IMG.tpieceWSE;
+    }
+    return F_IMG.crossSpecial;
+  };
+
+  return(<div>
+    <h2 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>🎮 Interactive Board Builder</h2>
+    <p style={{fontSize:10,color:"#64748B",margin:"0 0 12px",lineHeight:1.6}}>
+      Spawn fragments, click to select from inventory, click a board slot to place. Right-click a placed tile to remove it. Click "R" to rotate selected fragment. Click a placed tile to toggle combo badge.
+    </p>
+
+    {/* Board selector + controls */}
+    <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
+      <select value={gameBoardIdx} onChange={e=>{setGameBoardIdx(+e.target.value);resetGame();}} style={{background:"#1E293B",border:"1px solid #334155",borderRadius:6,padding:"6px 10px",color:"#E2E8F0",fontSize:11,fontFamily:"inherit"}}>
+        {BOARDS.map((b,i)=><option key={i} value={i}>{b.name} ({b.difficulty})</option>)}
+      </select>
+      <button onClick={autoSolve} style={{padding:"6px 14px",background:"#6366F130",border:"1px solid #6366F1",borderRadius:6,color:"#A78BFA",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>⚡ Auto-Solve</button>
+      <button onClick={resetGame} style={{padding:"6px 14px",background:"#7F1D1D20",border:"1px solid #F8717140",borderRadius:6,color:"#F87171",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
+      <div style={{fontSize:10,color:"#64748B"}}>Combos: <input type="number" min={0} max={20} value={gameComboCount} onChange={e=>setGameComboCount(Math.max(0,+e.target.value||0))} style={{background:"#0F172A",border:"1px solid #FF00E540",borderRadius:3,padding:"2px 4px",color:"#FF00E5",fontSize:10,width:32,textAlign:"center",fontFamily:"inherit"}}/></div>
+    </div>
+
+    <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
+      {/* Board */}
+      <div>
+        {/* Live score */}
+        <div style={{background:"#111827",border:`2px solid ${liveScore.onPath===16?"#10B981":liveScore.filled===16?"#FBBF24":"#334155"}`,borderRadius:10,padding:12,marginBottom:10,textAlign:"center"}}>
+          <div style={{fontSize:36,fontWeight:900,color:"#F8FAFC",lineHeight:1}}>{liveScore.total}<span style={{fontSize:16,color:"#94A3B8"}}>pts</span></div>
+          <div style={{fontSize:9,color:"#94A3B8",marginTop:4}}>
+            Path: {liveScore.pathPts} • Disc: {liveScore.discPts} • Full: {liveScore.fullB>0?"✓":"—"} • Ham: {liveScore.hamB>0?"✓":"—"} • Combo: {liveScore.comboPts}
+          </div>
+          <div style={{fontSize:9,color:"#64748B",marginTop:2}}>
+            {liveScore.onPath}/16 on path • {liveScore.filled}/16 filled
+          </div>
+        </div>
+
+        {/* 4x4 Grid */}
+        <div style={{display:"grid",gridTemplateColumns:`repeat(4,${cellSz}px)`,gridTemplateRows:`repeat(4,${cellSz}px)`,gap,background:"#111827",padding:pad,borderRadius:12,border:"2px solid #1E293B"}}>
+          {Array.from({length:16},(_,idx)=>{
+            const r=idx>>2,c=idx&3;
+            const tile=gameBoard[r][c];
+            const pi=board.path.findIndex(([pr,pc])=>pr===r&&pc===c);
+            const hasCombo=gameCombos.includes(r*4+c);
+            return(
+              <div key={idx}
+                onClick={()=>tile?toggleCombo(r,c):placeOnBoard(r,c)}
+                onContextMenu={e=>{e.preventDefault();removeFromBoard(r,c);}}
+                style={{
+                  width:cellSz,height:cellSz,borderRadius:6,cursor:"pointer",position:"relative",
+                  background:tile?(tile.conn>=40?"#1a1040":"#1E293B"):"#0F172A",
+                  border:tile?`2px solid ${tile.cl}60`:`1px solid ${gameSelected!==null?"#6366F140":"#1E293B"}`,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  transition:"all 0.15s",
+                }}>
+                {tile?(<>
+                  <img src={fragImg(tile.shape,tile.notches)} width={cellSz-8} height={cellSz-8} style={{opacity:0.9}} alt=""/>
+                  {hasCombo&&<div style={{position:"absolute",width:16,height:16,borderRadius:"50%",background:"#FF00E5",border:"2px solid #FF00E580",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:2}}/>}
+                </>):(
+                  <span style={{fontSize:8,color:"#334155",fontFamily:"monospace"}}>{pi>=0?pi+1:""}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Inventory + Spawn */}
+      <div style={{width:280}}>
+        {/* Spawn buttons */}
+        <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:10,marginBottom:10}}>
+          <h4 style={{fontSize:10,fontWeight:700,color:"#A78BFA",margin:"0 0 8px"}}>Spawn Fragments</h4>
+          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+            {FK.map(k=>(
+              <button key={k} onClick={()=>spawnFrag(k)} style={{
+                padding:"4px 8px",background:`${FT[k].cl}15`,border:`1px solid ${FT[k].cl}40`,
+                borderRadius:4,color:FT[k].cl,fontSize:8,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
+              }}>{FL[k]}</button>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:4,marginTop:6}}>
+            <button onClick={()=>{for(let i=0;i<3;i++)spawnFrag("CD_STRAIGHT");for(let i=0;i<2;i++)spawnFrag("B_CORNER");spawnFrag("A_CORNER");for(let i=0;i<4;i++)spawnFrag("SPECIAL");}} style={{padding:"4px 8px",background:"#334155",border:"1px solid #475569",borderRadius:4,color:"#94A3B8",fontSize:8,cursor:"pointer",fontFamily:"inherit"}}>+ Starter Pack</button>
+            <button onClick={()=>{FK.forEach(k=>{for(let i=0;i<3;i++)spawnFrag(k);});}} style={{padding:"4px 8px",background:"#334155",border:"1px solid #475569",borderRadius:4,color:"#94A3B8",fontSize:8,cursor:"pointer",fontFamily:"inherit"}}>+ Full Set</button>
+          </div>
+        </div>
+
+        {/* Inventory list */}
+        <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:10,maxHeight:400,overflowY:"auto"}}>
+          <h4 style={{fontSize:10,fontWeight:700,color:"#22D3EE",margin:"0 0 6px"}}>Inventory ({gameInv.length})</h4>
+          {gameInv.length===0&&<p style={{fontSize:9,color:"#475569"}}>Spawn fragments above to start placing.</p>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:3}}>
+            {gameInv.map((f,i)=>(
+              <div key={f.id+"-"+i}
+                onClick={()=>setGameSelected(gameSelected===i?null:i)}
+                style={{
+                  width:56,height:56,borderRadius:4,cursor:"pointer",position:"relative",
+                  background:gameSelected===i?"#6366F130":"#0F172A",
+                  border:gameSelected===i?`2px solid #6366F1`:`1px solid ${f.cl}30`,
+                  display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                  transition:"all 0.1s",
+                }}>
+                <img src={fragImg(f.shape,f.notches)} width={36} height={36} style={{opacity:0.8}} alt=""/>
+                <span style={{fontSize:6,color:f.cl,marginTop:1}}>{f.tier}</span>
+              </div>
+            ))}
+          </div>
+          {gameSelected!==null&&gameInv[gameSelected]&&(
+            <div style={{marginTop:8,padding:8,background:"#0F172A",borderRadius:6,border:"1px solid #6366F140"}}>
+              <div style={{fontSize:9,color:"#A78BFA",fontWeight:600,marginBottom:4}}>Selected: {FL[gameInv[gameSelected].type]}</div>
+              <div style={{fontSize:8,color:"#94A3B8"}}>Notches: {gameInv[gameSelected].notches.join(", ")}</div>
+              <div style={{fontSize:8,color:"#94A3B8"}}>
+                {gameInv[gameSelected].shape==="T-piece"?"🔒 Locked — cannot rotate":
+                 gameInv[gameSelected].shape==="Cross"?"All sides open":
+                 "Click R to rotate →"}
+              </div>
+              {gameInv[gameSelected].shape!=="T-piece"&&gameInv[gameSelected].shape!=="Cross"&&(
+                <button onClick={()=>rotateFrag(gameSelected)} style={{marginTop:4,padding:"3px 10px",background:"#6366F120",border:"1px solid #6366F1",borderRadius:4,color:"#A78BFA",fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>⟳ Rotate</button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+
+    {/* Instructions */}
+    <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:12,marginTop:12}}>
+      <h4 style={{fontSize:10,fontWeight:700,color:"#64748B",margin:"0 0 6px"}}>How to Play</h4>
+      <div style={{fontSize:9,color:"#475569",lineHeight:1.7,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:8}}>
+        <div><b style={{color:"#94A3B8"}}>1. Spawn:</b> Click fragment type buttons to add to inventory</div>
+        <div><b style={{color:"#94A3B8"}}>2. Select:</b> Click a fragment in inventory to select it (highlighted blue)</div>
+        <div><b style={{color:"#94A3B8"}}>3. Place:</b> Click an empty board slot to place the selected fragment</div>
+        <div><b style={{color:"#94A3B8"}}>4. Rotate:</b> Click "Rotate" button on selected fragment (T-pieces are locked)</div>
+        <div><b style={{color:"#94A3B8"}}>5. Remove:</b> Right-click a placed tile to return it to inventory</div>
+        <div><b style={{color:"#94A3B8"}}>6. Combo:</b> Click a placed tile to toggle combo badge (pink dot)</div>
+        <div><b style={{color:"#94A3B8"}}>7. Auto-Solve:</b> Let the AI find the best placement for your inventory</div>
+        <div><b style={{color:"#94A3B8"}}>8. Score:</b> Watch your score update in real-time as you build</div>
+      </div>
+    </div>
+  </div>);
+})()}
 
 {running&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200}}>
   <div style={{background:"#1E293B",padding:20,borderRadius:10,textAlign:"center",border:"1px solid #334155"}}>
