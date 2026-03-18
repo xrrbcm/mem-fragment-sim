@@ -418,7 +418,7 @@ export default function App(){
     const agg=results.map((br,bi)=>{
       const R=br.runs,N=R.length;const av=fn=>R.reduce((s,r)=>s+fn(r),0)/N;
       const avgUsage={};FK.forEach(k=>{avgUsage[k]=+(br.usageRuns.reduce((s,u)=>s+(u[k]||0),0)/N).toFixed(1);});
-      return{avgScore:+av(r=>r.total).toFixed(1),avgFilled:+av(r=>r.filled).toFixed(1),avgOnPath:+av(r=>r.onC).toFixed(1),pctPC:+((R.filter(r=>r.perfectClear).length/N*100).toFixed(1)),pctFull:+((R.filter(r=>r.boardCleared).length/N*100).toFixed(1)),avgCum:+av(r=>r.cumTotal).toFixed(1),avgUsage};
+      return{avgScore:+av(r=>r.total).toFixed(1),avgFilled:+av(r=>r.filled).toFixed(1),avgOnPath:+av(r=>r.onC).toFixed(1),pctPC:+((R.filter(r=>r.perfectClear).length/N*100).toFixed(1)),pctFull:+((R.filter(r=>r.boardCleared).length/N*100).toFixed(1)),avgCum:+av(r=>r.cumTotal).toFixed(1),avgCombo:+av(r=>r.cP||0).toFixed(1),avgUsage};
     });
     setHolderSim({holder:h,frags:{CD:h.cd,B:h.b,A:h.a,S:h.s,Sp:estSpecial,Un:estUnique,Hd:estHidden},totalFrags:fragList.length,boards:agg});
   },[]);
@@ -848,6 +848,31 @@ export default function App(){
       </div>
 
       {/* Badge names */}
+      {(()=>{
+        // Calculate summary stats
+        const bds=holderSim.boards;
+        const cumScore=bds[5].avgCum;
+        const cumWithoutCombo=bds.reduce((s,bd)=>s+(bd.avgScore-bd.avgCombo||0),0);
+        const boardsCleared=bds.filter(bd=>bd.pctFull>50).length;
+        const perfectClears=bds.filter(bd=>bd.pctPC>50).length;
+        const totalCombo=bds.reduce((s,bd)=>s+(bd.avgCombo||0),0);
+        return(
+          <div style={{background:"#111827",border:"2px solid #10B981",borderRadius:12,padding:20,marginBottom:10,textAlign:"center"}}>
+            <div style={{fontSize:48,fontWeight:900,color:"#F8FAFC",lineHeight:1,marginBottom:2}}>
+              {Math.round(cumScore)}<span style={{fontSize:20,fontWeight:600,color:"#94A3B8"}}>pts</span>
+            </div>
+            <div style={{fontSize:11,color:"#94A3B8",marginTop:8,lineHeight:1.8}}>
+              without combo: {Math.round(cumScore - totalCombo)}
+            </div>
+            <div style={{fontSize:11,color:"#94A3B8",lineHeight:1.8}}>
+              Boards cleared: {boardsCleared}
+            </div>
+            <div style={{fontSize:11,color:"#94A3B8",lineHeight:1.8}}>
+              Perfect clear: {perfectClears}
+            </div>
+          </div>
+        );
+      })()}
       <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:14,marginBottom:10}}>
         <h4 style={{fontSize:10,fontWeight:700,color:"#A78BFA",margin:"0 0 6px"}}>Trait Badges Owned</h4>
         <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
