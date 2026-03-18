@@ -1325,6 +1325,95 @@ export default function App(){
     </div>
   </div>
 
+  {/* Archetype Board Progression Table */}
+  <div style={{background:"#111827",border:"2px solid #22D3EE30",borderRadius:12,padding:20,marginBottom:16}}>
+    <h3 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>🧩 Archetype Board Progression</h3>
+    <p style={{fontSize:10,color:"#64748B",margin:"0 0 4px"}}>How each player type progresses through the board stages.</p>
+    <div style={{background:"#22D3EE15",border:"1px solid #22D3EE30",borderRadius:6,padding:"6px 12px",marginBottom:14,display:"inline-block"}}>
+      <span style={{fontSize:10,color:"#22D3EE",fontWeight:700}}>📌 Note:</span>
+      <span style={{fontSize:10,color:"#94A3B8"}}> All archetypes include <b style={{color:"#8B5CF6"}}>8 Special Action Badges</b> (earned through engagement, not NFT ownership). These are 4-notch Cross fragments — the most powerful board tiles available to everyone.</span>
+    </div>
+
+    <div style={{overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+        <thead>
+          <tr style={{color:"#64748B"}}>
+            <th style={{padding:"8px 10px",textAlign:"left",borderBottom:"2px solid #1E293B",fontSize:9}}>Archetype</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #1E293B",fontSize:9}}>Trait<br/>Badges</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #1E293B",fontSize:9,color:"#8B5CF6"}}>+8 Special<br/>(Action)</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #1E293B",fontSize:9}}>Total<br/>Tiles</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #34D399",fontSize:9,color:"#34D399"}}>1×1<br/>(1 tile)</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #22D3EE",fontSize:9,color:"#22D3EE"}}>2×2<br/>(4 tiles)</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #F59E0B",fontSize:9,color:"#F59E0B"}}>3×3<br/>(9 tiles)</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #EC4899",fontSize:9,color:"#EC4899"}}>4×4<br/>(16 tiles)</th>
+            <th style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid #1E293B",fontSize:9}}>Boards<br/>Clearable</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            {name:"Passive Single Holder",traits:3,special:2,unique:0,hidden:0,color:"#64748B",
+             b1:"✅ Clear",b2:"⚠️ 4/4 tight",b3:"❌ Not enough",b4:"❌ Not enough",clear:"1–2"},
+            {name:"Active Single Holder",traits:3,special:8,unique:2,hidden:0,color:"#3B82F6",
+             b1:"✅ Clear",b2:"✅ Clear",b3:"✅ 13/9 surplus",b4:"⚠️ 13/16 partial",clear:"3"},
+            {name:"Mid Collector (6-10)",traits:13,special:8,unique:3,hidden:1,color:"#F59E0B",
+             b1:"✅ Clear",b2:"✅ Clear",b3:"✅ Clear",b4:"✅ 25/16 surplus",clear:"4 ✓"},
+            {name:"Large Holder (11-50)",traits:17,special:8,unique:4,hidden:2,color:"#EC4899",
+             b1:"✅ Clear",b2:"✅ Clear",b3:"✅ Clear",b4:"✅ 31/16 surplus",clear:"4 ✓✓"},
+            {name:"Whale (51+)",traits:23,special:8,unique:5,hidden:3,color:"#8B5CF6",
+             b1:"✅ Clear",b2:"✅ Clear",b3:"✅ Clear",b4:"✅ 39/16 surplus",clear:"4 ✓✓✓"},
+          ].map((a,i)=>{
+            const total=a.traits+a.special+a.unique+a.hidden;
+            return(
+              <tr key={i} style={{borderBottom:"1px solid #1E293B30"}}>
+                <td style={{padding:"8px 10px",fontWeight:600,color:a.color,whiteSpace:"nowrap"}}>{a.name}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"#94A3B8"}}>{a.traits}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"#8B5CF6",fontWeight:700}}>+{a.special}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",color:"#FBBF24",fontWeight:700}}>{total}</td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontSize:9,background:total>=1?"#34D39910":"transparent"}}>
+                  <span style={{color:"#34D399"}}>{a.b1}</span>
+                </td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontSize:9,background:total>=4?"#22D3EE10":"transparent"}}>
+                  <span style={{color:total>=4?"#22D3EE":"#F87171"}}>{a.b2}</span>
+                </td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontSize:9,background:total>=9?"#F59E0B10":"transparent"}}>
+                  <span style={{color:total>=9?"#F59E0B":"#F87171"}}>{a.b3}</span>
+                </td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontSize:9,background:total>=16?"#EC489910":"transparent"}}>
+                  <span style={{color:total>=16?"#EC4899":"#F87171"}}>{a.b4}</span>
+                </td>
+                <td style={{padding:"8px 6px",textAlign:"center",fontWeight:700,color:a.color}}>{a.clear}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    <div style={{marginTop:12,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:8}}>
+      <div style={{background:"#0F172A",borderRadius:6,padding:10}}>
+        <div style={{fontSize:9,fontWeight:700,color:"#F87171",marginBottom:4}}>⚠️ Key Insight: The 3×3 Wall</div>
+        <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.6}}>
+          Passive holders with only 5 tiles cannot fill a 3×3 (needs 9). This is the primary engagement motivator —
+          earning more Special badges directly unlocks new board stages.
+        </p>
+      </div>
+      <div style={{background:"#0F172A",borderRadius:6,padding:10}}>
+        <div style={{fontSize:9,fontWeight:700,color:"#34D399",marginBottom:4}}>✅ The Equalizer: 8 Special Badges</div>
+        <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.6}}>
+          A single-holder who earns all 8 Special + 2 Unique badges goes from 3 tiles to 13 tiles.
+          That's enough to clear 3×3 and attempt 4×4. Actions > ownership for progression.
+        </p>
+      </div>
+      <div style={{background:"#0F172A",borderRadius:6,padding:10}}>
+        <div style={{fontSize:9,fontWeight:700,color:"#FBBF24",marginBottom:4}}>🏆 Perfect Clear vs Board Clear</div>
+        <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.6}}>
+          Having enough tiles to fill a board ≠ perfect clear. Perfect clear requires the RIGHT fragment types
+          in the RIGHT orientations. A whale with 39 tiles has choices; a mid-collector with 25 must be strategic.
+        </p>
+      </div>
+    </div>
+  </div>
+
   {/* Mathematical Balancing */}
   <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:16,marginBottom:16}}>
     <h3 style={{fontSize:13,fontWeight:700,color:"#A78BFA",margin:"0 0 12px"}}>📊 Mathematical Balancing</h3>
