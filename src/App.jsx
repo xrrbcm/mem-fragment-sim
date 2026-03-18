@@ -132,10 +132,11 @@ function analyzeBoardNeeds(board){
 
 // ── Inventory ──
 const DEFAULT_INV=[
-  {name:"Passive Single-Char",combos:0,frags:{CD_STRAIGHT:2,B_CORNER:1,A_CORNER:0,S_TPIECE:0,SPECIAL:1,UNIQUE:0,HIDDEN:0}},
-  {name:"Active Single-Char",combos:1,frags:{CD_STRAIGHT:3,B_CORNER:2,A_CORNER:1,S_TPIECE:0,SPECIAL:4,UNIQUE:2,HIDDEN:0}},
-  {name:"Mid Collector (3-5)",combos:3,frags:{CD_STRAIGHT:5,B_CORNER:3,A_CORNER:2,S_TPIECE:1,SPECIAL:4,UNIQUE:1,HIDDEN:0}},
-  {name:"Whale (20+)",combos:8,frags:{CD_STRAIGHT:9,B_CORNER:6,A_CORNER:4,S_TPIECE:2,SPECIAL:5,UNIQUE:3,HIDDEN:1}},
+  {name:"Passive Single Holder",combos:0,frags:{CD_STRAIGHT:2,B_CORNER:1,A_CORNER:0,S_TPIECE:0,SPECIAL:2,UNIQUE:0,HIDDEN:0}},
+  {name:"Active Single Holder",combos:1,frags:{CD_STRAIGHT:2,B_CORNER:1,A_CORNER:0,S_TPIECE:0,SPECIAL:8,UNIQUE:2,HIDDEN:0}},
+  {name:"Mid Collector (6-10)",combos:4,frags:{CD_STRAIGHT:6,B_CORNER:4,A_CORNER:2,S_TPIECE:1,SPECIAL:8,UNIQUE:3,HIDDEN:1}},
+  {name:"Large Holder (11-50)",combos:8,frags:{CD_STRAIGHT:8,B_CORNER:5,A_CORNER:3,S_TPIECE:1,SPECIAL:8,UNIQUE:4,HIDDEN:2}},
+  {name:"Whale (51+)",combos:12,frags:{CD_STRAIGHT:10,B_CORNER:6,A_CORNER:5,S_TPIECE:2,SPECIAL:8,UNIQUE:5,HIDDEN:3}},
 ];
 
 function mkInv(inv){const f=[];let id=0;for(const[t,n]of Object.entries(inv.frags))for(let i=0;i<n;i++)f.push(mkFrag(t,id++));return{frags:f,combos:inv.combos};}
