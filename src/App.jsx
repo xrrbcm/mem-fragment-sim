@@ -308,25 +308,53 @@ function InvEditor({inventories:inv,setInventories:setInv}){
   const up=(ai,k,v)=>{const n=[...inv];n[ai]={...n[ai],frags:{...n[ai].frags,[k]:Math.max(0,parseInt(v)||0)}};setInv(n);};
   const upC=(ai,v)=>{const n=[...inv];n[ai]={...n[ai],combos:Math.max(0,parseInt(v)||0)};setInv(n);};
   const upN=(ai,v)=>{const n=[...inv];n[ai]={...n[ai],name:v};setInv(n);};
+  // Global set: apply a value to ALL archetypes for a specific key
+  const setAll=(k,v)=>{const n=inv.map(item=>({...item,frags:{...item.frags,[k]:Math.max(0,parseInt(v)||0)}}));setInv(n);};
+  const setAllCombos=(v)=>{const n=inv.map(item=>({...item,combos:Math.max(0,parseInt(v)||0)}));setInv(n);};
   return(
     <div style={{background:"#111827",border:"1px solid #334155",borderRadius:10,padding:14,marginBottom:14}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <h3 style={{fontSize:12,fontWeight:700,color:"#A78BFA",margin:0,letterSpacing:.5,textTransform:"uppercase"}}>✏️ Archetype Inventories</h3>
-        <button onClick={()=>setInv(JSON.parse(JSON.stringify(DEFAULT_INV)))} style={{padding:"3px 10px",background:"#1E293B",border:"1px solid #334155",borderRadius:4,color:"#94A3B8",fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>Reset</button>
+        <button onClick={()=>setInv(JSON.parse(JSON.stringify(DEFAULT_INV)))} style={{padding:"3px 10px",background:"#1E293B",border:"1px solid #334155",borderRadius:4,color:"#94A3B8",fontSize:9,cursor:"pointer",fontFamily:"inherit"}}>Reset to Defaults</button>
       </div>
+
+      {/* Global Action Badge Controls */}
+      <div style={{background:"#0F172A",border:"1px solid #334155",borderRadius:6,padding:10,marginBottom:10}}>
+        <div style={{fontSize:9,color:"#64748B",marginBottom:6,fontWeight:600,textTransform:"uppercase",letterSpacing:.5}}>
+          ⚡ Set Action Badges Globally (applies to ALL archetypes)
+        </div>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+          {[["SPECIAL","Special (max 8)","#8B5CF6",8],["UNIQUE","Unique (max 5)","#EC4899",5],["HIDDEN","Hidden (max 5)","#10B981",5]].map(([key,label,color,max])=>(
+            <div key={key} style={{display:"flex",alignItems:"center",gap:4}}>
+              <span style={{fontSize:9,color}}>{label}:</span>
+              <input type="number" min={0} max={max} value={inv[0]?.frags[key]||0} onChange={e=>setAll(key,e.target.value)}
+                style={{background:"#1E293B",border:`1px solid ${color}40`,borderRadius:3,padding:"3px 4px",color,fontSize:10,fontFamily:"inherit",width:36,textAlign:"center"}}/>
+              <button onClick={()=>setAll(key,max)} style={{padding:"2px 6px",background:`${color}20`,border:`1px solid ${color}40`,borderRadius:3,color,fontSize:7,cursor:"pointer",fontFamily:"inherit"}}>Max</button>
+            </div>
+          ))}
+        </div>
+        <p style={{fontSize:8,color:"#475569",margin:"6px 0 0"}}>
+          Special badges are earned through actions (Profile Complete, First Claim, etc.). Every engaged player can earn all 8.
+          Use per-row overrides below for different engagement levels per archetype.
+        </p>
+      </div>
+
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
           <thead><tr style={{color:"#64748B"}}>
             <th style={{padding:"4px 5px",textAlign:"left",borderBottom:"1px solid #1E293B",fontSize:8}}>Name</th>
             {FK.map(k=><th key={k} style={{padding:"4px 3px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:7,whiteSpace:"nowrap"}}><span style={{color:FT[k].cl}}>{FL[k]}</span></th>)}
-            <th style={{padding:"4px 5px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:8,color:"#EC4899"}}>Combos</th>
-            <th style={{padding:"4px 5px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:8,color:"#FBBF24"}}>Total</th>
+            <th style={{padding:"4px 5px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:8,color:"#FF00E5"}}>Combos</th>
+            <th style={{padding:"4px 5px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:8,color:"#FBBF24"}}>Tiles</th>
           </tr></thead>
           <tbody>{inv.map((item,ai)=>(
             <tr key={ai}>
-              <td style={{padding:"3px 5px",borderBottom:"1px solid #1E293B20"}}><input value={item.name} onChange={e=>upN(ai,e.target.value)} style={{background:"#0F172A",border:"1px solid #1E293B",borderRadius:3,padding:"2px 5px",color:"#E2E8F0",fontSize:9,fontFamily:"inherit",width:130}}/></td>
-              {FK.map(k=><td key={k} style={{padding:"3px 2px",textAlign:"center",borderBottom:"1px solid #1E293B20"}}><input type="number" min={0} max={50} value={item.frags[k]} onChange={e=>up(ai,k,e.target.value)} style={{background:"#0F172A",border:"1px solid #1E293B",borderRadius:3,padding:"2px",color:"#F8FAFC",fontSize:9,fontFamily:"inherit",width:32,textAlign:"center"}}/></td>)}
-              <td style={{padding:"3px 2px",textAlign:"center",borderBottom:"1px solid #1E293B20"}}><input type="number" min={0} max={30} value={item.combos} onChange={e=>upC(ai,e.target.value)} style={{background:"#0F172A",border:"1px solid #EC489930",borderRadius:3,padding:"2px",color:"#EC4899",fontSize:9,fontFamily:"inherit",width:32,textAlign:"center"}}/></td>
+              <td style={{padding:"3px 5px",borderBottom:"1px solid #1E293B20"}}><input value={item.name} onChange={e=>upN(ai,e.target.value)} style={{background:"#0F172A",border:"1px solid #1E293B",borderRadius:3,padding:"2px 5px",color:"#E2E8F0",fontSize:9,fontFamily:"inherit",width:140}}/></td>
+              {FK.map(k=>{
+                const isAction=k==="SPECIAL"||k==="UNIQUE"||k==="HIDDEN";
+                return<td key={k} style={{padding:"3px 2px",textAlign:"center",borderBottom:"1px solid #1E293B20"}}><input type="number" min={0} max={50} value={item.frags[k]} onChange={e=>up(ai,k,e.target.value)} style={{background:isAction?"#1E293B":"#0F172A",border:`1px solid ${isAction?FT[k].cl+"40":"#1E293B"}`,borderRadius:3,padding:"2px",color:isAction?FT[k].cl:"#F8FAFC",fontSize:9,fontFamily:"inherit",width:32,textAlign:"center"}}/></td>;
+              })}
+              <td style={{padding:"3px 2px",textAlign:"center",borderBottom:"1px solid #1E293B20"}}><input type="number" min={0} max={30} value={item.combos} onChange={e=>upC(ai,e.target.value)} style={{background:"#0F172A",border:"1px solid #FF00E530",borderRadius:3,padding:"2px",color:"#FF00E5",fontSize:9,fontFamily:"inherit",width:32,textAlign:"center"}}/></td>
               <td style={{padding:"3px 5px",textAlign:"center",borderBottom:"1px solid #1E293B20",color:"#FBBF24",fontWeight:700}}>{totalF(item)}</td>
             </tr>
           ))}</tbody>
