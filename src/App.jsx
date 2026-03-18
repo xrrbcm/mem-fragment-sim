@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { WALLETS } from "./wallets.js";
 
 /* ================================================================
    MEM FRAGMENT BOARD — PHASE A SIMULATION
@@ -343,6 +344,56 @@ export default function App(){
   const[running,setRunning]=useState(false);
   const[progress,setProgress]=useState(0);
   const[inv,setInv]=useState(()=>JSON.parse(JSON.stringify(DEFAULT_INV)));
+  const[holderSearch,setHolderSearch]=useState("");
+  const[selectedHolder,setSelectedHolder]=useState(null);
+  const[holderSim,setHolderSim]=useState(null);
+
+  // Parse wallet data
+  const holders=useMemo(()=>WALLETS.map(w=>({addr:w[0],short:w[0].slice(0,6)+"..."+w[0].slice(-4),tokens:w[1],cd:w[2],b:w[3],a:w[4],s:w[5],combos:w[6],badges:w[7]?w[7].split(","):[],comboNames:w[8]?w[8].split(",").filter(Boolean):[],totalFrags:w[2]+w[3]+w[4]+w[5]})),[]);
+
+  // Simulate a single holder across all 6 boards
+  const simHolder=useCallback((h)=>{
+    setSelectedHolder(h);
+    // Build their fragment inventory (trait badges only — no Special/Unique/Hidden yet since those are action-based)
+    const fragList=[];let id=0;
+    for(let i=0;i<h.cd;i++)fragList.push(mkFrag("CD_STRAIGHT",id++));
+    for(let i=0;i<h.b;i++)fragList.push(mkFrag("B_CORNER",id++));
+    for(let i=0;i<h.a;i++)fragList.push(mkFrag("A_CORNER",id++));
+    for(let i=0;i<h.s;i++)fragList.push(mkFrag("S_TPIECE",id++));
+    // Estimate action badges: assume active holders earn some
+    const estSpecial=Math.min(8,Math.max(2,Math.floor(h.tokens>=5?8:h.tokens>=2?5:2)));
+    const estUnique=Math.min(5,h.tokens>=10?3:h.tokens>=2?2:0);
+    const estHidden=Math.min(5,h.tokens>=20?Math.min(3,Math.floor(h.tokens/30)):0);
+    for(let i=0;i<estSpecial;i++)fragList.push(mkFrag("SPECIAL",id++));
+    for(let i=0;i<estUnique;i++)fragList.push(mkFrag("UNIQUE",id++));
+    for(let i=0;i<estHidden;i++)fragList.push(mkFrag("HIDDEN",id++));
+
+    // Run progressive simulation (single pass, 20 iterations for speed)
+    const results=[];
+    const iters=20;
+    for(let b=0;b<6;b++)results.push({runs:[],usageRuns:[]});
+    for(let it=0;it<iters;it++){
+      // Re-randomize orientations each iteration
+      const freshFrags=fragList.map((f,i)=>({...f,notches:randOrient(f.shape),id:i}));
+      let rem=[...freshFrags],cum=0;
+      for(let b=0;b<6;b++){
+        const emptyU={};FK.forEach(k=>emptyU[k]=0);
+        if(rem.length===0){results[b].runs.push({filled:0,onC:0,total:0,cumTotal:cum,perfectClear:false,boardCleared:false});results[b].usageRuns.push(emptyU);continue;}
+        const{grid,usedIds}=solveBoard(BOARDS[b],rem);
+        const sc=scoreGrid(grid,BOARDS[b],h.combos);cum+=sc.total;
+        const usage={...emptyU};for(const idx of usedIds)usage[rem[idx].type]=(usage[rem[idx].type]||0)+1;
+        results[b].runs.push({...sc,cumTotal:cum});results[b].usageRuns.push(usage);
+        rem=rem.filter((_,i)=>!usedIds.has(i));
+      }
+    }
+    // Aggregate
+    const agg=results.map((br,bi)=>{
+      const R=br.runs,N=R.length;const av=fn=>R.reduce((s,r)=>s+fn(r),0)/N;
+      const avgUsage={};FK.forEach(k=>{avgUsage[k]=+(br.usageRuns.reduce((s,u)=>s+(u[k]||0),0)/N).toFixed(1);});
+      return{avgScore:+av(r=>r.total).toFixed(1),avgFilled:+av(r=>r.filled).toFixed(1),avgOnPath:+av(r=>r.onC).toFixed(1),pctPC:+((R.filter(r=>r.perfectClear).length/N*100).toFixed(1)),pctFull:+((R.filter(r=>r.boardCleared).length/N*100).toFixed(1)),avgCum:+av(r=>r.cumTotal).toFixed(1),avgUsage};
+    });
+    setHolderSim({holder:h,frags:{CD:h.cd,B:h.b,A:h.a,S:h.s,Sp:estSpecial,Un:estUnique,Hd:estHidden},totalFrags:fragList.length,boards:agg});
+  },[]);
 
   const bAnal=useMemo(()=>BOARDS.map(b=>({turns:countTurns(b.path),...analyzeBoardNeeds(b)})),[]);
 
@@ -357,7 +408,7 @@ export default function App(){
 
   const css=`*{margin:0;padding:0;box-sizing:border-box}body{background:#0A0F1C}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:1}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}`;
 
-  const tb=(p,l)=>(<button onClick={()=>{if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
+  const tb=(p,l)=>(<button onClick={()=>{if(p===5)setPhase(5);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
 
   return(
     <div style={{minHeight:"100vh",background:"#0A0F1C",color:"#E2E8F0",fontFamily:"'SF Mono','Cascadia Code','JetBrains Mono',monospace"}}>
@@ -368,7 +419,7 @@ export default function App(){
             <h1 style={{fontSize:16,fontWeight:800,background:"linear-gradient(90deg,#22D3EE,#A78BFA,#F472B6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>MEM Fragment Board System</h1>
             <p style={{fontSize:8,color:"#64748B",marginTop:1,letterSpacing:2,textTransform:"uppercase"}}>V1 Phase A • Progressive • A/B Corners • Locked T-Pieces</p>
           </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}</div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}{tb(5,"Real Holders")}</div>
         </div>
       </div>
 
@@ -693,6 +744,159 @@ export default function App(){
         </div>
       </div>);
     })}
+  </div>
+</div>)}
+
+{/* ═══════════════════════ PHASE 5: REAL HOLDERS ═══════════════════════ */}
+{phase===5&&(<div>
+  <h2 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>Real Holder Simulation</h2>
+  <p style={{fontSize:10,color:"#64748B",margin:"0 0 12px",lineHeight:1.6}}>
+    {holders.length} real wallets from on-chain data. Search by address, then click to simulate their board placement across all 6 boards.
+    Action badges (Special/Unique/Hidden) are estimated based on holder size.
+  </p>
+
+  {/* Search */}
+  <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
+    <input value={holderSearch} onChange={e=>setHolderSearch(e.target.value)} placeholder="Search wallet address..." style={{flex:1,maxWidth:400,background:"#0F172A",border:"1px solid #334155",borderRadius:6,padding:"8px 12px",color:"#E2E8F0",fontSize:11,fontFamily:"inherit"}}/>
+    <span style={{fontSize:9,color:"#64748B"}}>{holders.length} wallets</span>
+  </div>
+
+  <div style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:"wrap"}}>
+    {/* Wallet list */}
+    <div style={{width:380,flexShrink:0,background:"#111827",border:"1px solid #1E293B",borderRadius:10,overflow:"hidden"}}>
+      <div style={{padding:"8px 12px",background:"#1E293B",fontSize:9,color:"#64748B",display:"flex",justifyContent:"space-between"}}>
+        <span>Wallet</span><span>NFTs</span><span>Badges</span><span>Frags</span>
+      </div>
+      <div style={{maxHeight:500,overflowY:"auto"}}>
+        {holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase())).slice(0,100).map((h,i)=>(
+          <div key={i} onClick={()=>simHolder(h)} style={{
+            padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",fontSize:9,
+            background:selectedHolder?.addr===h.addr?"#6366F120":"transparent",
+            borderBottom:"1px solid #1E293B20",
+            color:selectedHolder?.addr===h.addr?"#A78BFA":"#94A3B8",
+          }}>
+            <span style={{fontFamily:"monospace",fontSize:8,width:100}}>{h.short}</span>
+            <span style={{width:40,textAlign:"center",color:"#FBBF24"}}>{h.tokens}</span>
+            <span style={{width:40,textAlign:"center"}}>{h.badges.length}</span>
+            <span style={{width:40,textAlign:"center",color:"#22D3EE"}}>{h.totalFrags}</span>
+          </div>
+        ))}
+        {holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase())).length>100&&
+          <div style={{padding:8,textAlign:"center",fontSize:8,color:"#475569"}}>Showing first 100 of {holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase())).length} results</div>
+        }
+      </div>
+    </div>
+
+    {/* Selected holder detail */}
+    {holderSim&&(<div style={{flex:1,minWidth:300}}>
+      {/* Holder info card */}
+      <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:14,marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+          <div>
+            <h3 style={{fontSize:12,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px",fontFamily:"monospace"}}>{holderSim.holder.short}</h3>
+            <p style={{fontSize:8,color:"#475569",margin:0,fontFamily:"monospace"}}>{holderSim.holder.addr}</p>
+          </div>
+          <div style={{textAlign:"right",fontSize:10}}>
+            <div style={{color:"#FBBF24",fontWeight:700}}>{holderSim.holder.tokens} NFTs</div>
+            <div style={{color:"#64748B",fontSize:9}}>{holderSim.holder.badges.length} trait badges</div>
+          </div>
+        </div>
+
+        {/* Fragment inventory */}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+          {[["C/D",holderSim.frags.CD,"#64748B"],["B Cor",holderSim.frags.B,"#3B82F6"],["A Cor",holderSim.frags.A,"#60A5FA"],["S T-pc",holderSim.frags.S,"#F59E0B"],["Special",holderSim.frags.Sp,"#8B5CF6"],["Unique",holderSim.frags.Un,"#EC4899"],["Hidden",holderSim.frags.Hd,"#10B981"]].map(([label,count,color])=>(
+            <div key={label} style={{background:`${color}15`,border:`1px solid ${color}40`,borderRadius:4,padding:"3px 8px",fontSize:8}}>
+              <span style={{color}}>{count}</span> <span style={{color:"#94A3B8"}}>{label}</span>
+            </div>
+          ))}
+          <div style={{background:"#FF00E515",border:"1px solid #FF00E540",borderRadius:4,padding:"3px 8px",fontSize:8}}>
+            <span style={{color:"#FF00E5"}}>{holderSim.holder.combos}</span> <span style={{color:"#94A3B8"}}>Combos</span>
+          </div>
+        </div>
+        <div style={{fontSize:8,color:"#64748B"}}>
+          Total board tiles: <span style={{color:"#22D3EE",fontWeight:700}}>{holderSim.totalFrags}</span> • 
+          Combo transistors: <span style={{color:"#FF00E5",fontWeight:700}}>{holderSim.holder.combos}</span>
+        </div>
+      </div>
+
+      {/* Badge names */}
+      <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:14,marginBottom:10}}>
+        <h4 style={{fontSize:10,fontWeight:700,color:"#A78BFA",margin:"0 0 6px"}}>Trait Badges Owned</h4>
+        <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+          {holderSim.holder.badges.map((b,i)=><span key={i} style={{fontSize:7,padding:"2px 6px",borderRadius:3,background:"#1E293B",color:"#CBD5E1",border:"1px solid #33415530"}}>{b}</span>)}
+        </div>
+        {holderSim.holder.comboNames.length>0&&(<>
+          <h4 style={{fontSize:10,fontWeight:700,color:"#FF00E5",margin:"8px 0 4px"}}>Combo Badges</h4>
+          <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+            {holderSim.holder.comboNames.map((b,i)=><span key={i} style={{fontSize:7,padding:"2px 6px",borderRadius:3,background:"#FF00E510",color:"#FF00E5",border:"1px solid #FF00E530"}}>{b}</span>)}
+          </div>
+        </>)}
+      </div>
+
+      {/* Board simulation results */}
+      <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:14}}>
+        <h4 style={{fontSize:10,fontWeight:700,color:"#22D3EE",margin:"0 0 8px"}}>Progressive Board Simulation (20 iterations)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:8}}>
+          <thead><tr style={{color:"#64748B"}}>
+            {["Board","Score","Filled","Path","Full%","PC ✦","Cumul."].map(h=><th key={h} style={{padding:"4px 5px",textAlign:"center",borderBottom:"1px solid #1E293B",fontSize:7}}>{h}</th>)}
+          </tr></thead>
+          <tbody>{holderSim.boards.map((bd,b)=>(
+            <tr key={b} style={{opacity:bd.avgScore===0?0.3:1}}>
+              <td style={{padding:"5px",color:"#A78BFA",fontWeight:600,textAlign:"center"}}>{BOARDS[b].name}</td>
+              <td style={{padding:"5px",textAlign:"center",color:"#22D3EE",fontWeight:700}}>{bd.avgScore}</td>
+              <td style={{padding:"5px",textAlign:"center"}}>{bd.avgFilled}/16</td>
+              <td style={{padding:"5px",textAlign:"center"}}>{bd.avgOnPath}</td>
+              <td style={{padding:"5px",textAlign:"center",color:bd.pctFull>0?"#34D399":"#334155"}}>{bd.pctFull}%</td>
+              <td style={{padding:"5px",textAlign:"center",color:bd.pctPC>0?"#FBBF24":"#334155"}}>{bd.pctPC>0?`${bd.pctPC}%`:"—"}</td>
+              <td style={{padding:"5px",textAlign:"center",color:"#FBBF24",fontWeight:600}}>{bd.avgCum}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+
+        {/* Per-board fragment usage */}
+        <div style={{marginTop:8}}>
+          <h5 style={{fontSize:8,color:"#64748B",margin:"0 0 4px",textTransform:"uppercase"}}>Fragment Usage per Board</h5>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:7}}>
+            <thead><tr style={{color:"#475569"}}>
+              <th style={{padding:"2px 4px",textAlign:"left",borderBottom:"1px solid #1E293B"}}>Type</th>
+              {BOARDS.map((_,b)=><th key={b} style={{padding:"2px 4px",textAlign:"center",borderBottom:"1px solid #1E293B"}}>B{b+1}</th>)}
+            </tr></thead>
+            <tbody>{FK.map(k=>{
+              const vals=holderSim.boards.map(bd=>bd.avgUsage?.[k]||0);
+              if(vals.every(v=>v===0))return null;
+              return(<tr key={k}>
+                <td style={{padding:"2px 4px",color:FT[k].cl,fontWeight:600}}>{FL[k]}</td>
+                {vals.map((v,b)=><td key={b} style={{padding:"2px 4px",textAlign:"center",color:v>0?"#E2E8F0":"#334155"}}>{v>0?v.toFixed(1):"—"}</td>)}
+              </tr>);
+            })}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>)}
+  </div>
+
+  {/* Distribution overview */}
+  <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:10,padding:14,marginTop:12}}>
+    <h3 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 8px"}}>Holder Distribution Overview</h3>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
+      {[
+        ["1 NFT",holders.filter(h=>h.tokens===1).length,"#64748B"],
+        ["2-5 NFTs",holders.filter(h=>h.tokens>=2&&h.tokens<=5).length,"#3B82F6"],
+        ["6-10 NFTs",holders.filter(h=>h.tokens>=6&&h.tokens<=10).length,"#F59E0B"],
+        ["11-50 NFTs",holders.filter(h=>h.tokens>=11&&h.tokens<=50).length,"#EC4899"],
+        ["51+ NFTs",holders.filter(h=>h.tokens>=51).length,"#8B5CF6"],
+      ].map(([label,count,color])=>(
+        <div key={label} style={{background:"#0F172A",borderRadius:6,padding:10,textAlign:"center"}}>
+          <div style={{fontSize:18,fontWeight:800,color}}>{count}</div>
+          <div style={{fontSize:9,color:"#64748B"}}>{label}</div>
+          <div style={{fontSize:8,color:"#475569"}}>{(count/holders.length*100).toFixed(1)}%</div>
+        </div>
+      ))}
+    </div>
+    <div style={{marginTop:8,fontSize:9,color:"#64748B"}}>
+      Avg badges per wallet: <span style={{color:"#22D3EE"}}>{(holders.reduce((s,h)=>s+h.badges.length,0)/holders.length).toFixed(1)}</span> • 
+      Avg fragments: <span style={{color:"#FBBF24"}}>{(holders.reduce((s,h)=>s+h.totalFrags,0)/holders.length).toFixed(1)}</span>
+    </div>
   </div>
 </div>)}
 
