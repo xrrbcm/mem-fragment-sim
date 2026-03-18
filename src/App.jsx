@@ -287,6 +287,20 @@ function BoardSVG({board,size=240}){
   );
 }
 
+// ── SVG image helper ──
+const F_IMG={
+  straightWE:"/frags/straight-we.svg", straightNS:"/frags/straight-ns.svg",
+  cornerWN:"/frags/corner-wn-b.svg", cornerNE:"/frags/corner-ne-b.svg",
+  cornerWS:"/frags/corner-ws-a.svg", cornerSE:"/frags/corner-se-a.svg",
+  tpieceWNE:"/frags/tpiece-wne.svg", tpieceWSE:"/frags/tpiece-wse.svg",
+  crossSpecial:"/frags/cross-special.svg", crossUnique:"/frags/cross-unique.svg",
+  crossHidden:"/frags/cross-hidden.svg",
+  board2x2:"/frags/board-2x2.svg", board3x3:"/frags/board-3x3.svg",
+  board4x4:"/frags/board-4x4.svg", memsystem:"/frags/memsystem-4x4.svg",
+  inventory:"/frags/inventory.svg", progression:"/frags/progression.svg",
+};
+function FImg({src,size=40,style={}}){return<img src={src} width={size} height={size} style={{display:"inline-block",...style}} alt=""/>;}
+
 // ── Inventory Editor ──
 function InvEditor({inventories:inv,setInventories:setInv}){
   const up=(ai,k,v)=>{const n=[...inv];n[ai]={...n[ai],frags:{...n[ai].frags,[k]:Math.max(0,parseInt(v)||0)}};setInv(n);};
@@ -372,19 +386,17 @@ export default function App(){
   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10}}>
     {/* C/D Straight */}
     <div style={{background:"#111827",border:"1px solid #64748B40",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <FragSVG shape="Straight" notches={["E","W"]} size={36} color="#64748B"/>
-        <FragSVG shape="Straight" notches={["N","S"]} size={36} color="#64748B"/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <FImg src={F_IMG.straightWE} size={38}/><FImg src={F_IMG.straightNS} size={38}/>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Standard C/D Tier</h4>
       <p style={{fontSize:10,color:"#FBBF24",margin:"0 0 4px",fontStyle:"italic"}}>2-Notch Straight • 16 badges</p>
-      <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.5}}>Freely rotatable between N-S and W-E. Most common fragments — every collector has at least one. Faction IDs and appearance traits.</p>
+      <p style={{fontSize:9,color:"#94A3B8",margin:0,lineHeight:1.5}}>Freely rotatable between W-E and N-S. Most common fragments — every collector has at least one. Faction IDs and appearance traits.</p>
     </div>
     {/* B Corner */}
     <div style={{background:"#111827",border:"1px solid #3B82F640",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <FragSVG shape="CornerB" notches={["W","N"]} size={36} color="#3B82F6"/>
-        <FragSVG shape="CornerB" notches={["N","E"]} size={36} color="#3B82F6"/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <FImg src={F_IMG.cornerWN} size={38}/><FImg src={F_IMG.cornerNE} size={38}/>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Standard B Tier</h4>
       <p style={{fontSize:10,color:"#3B82F6",margin:"0 0 4px",fontStyle:"italic"}}>2-Notch Upper Corner • 6 badges</p>
@@ -392,9 +404,8 @@ export default function App(){
     </div>
     {/* A Corner */}
     <div style={{background:"#111827",border:"1px solid #60A5FA40",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <FragSVG shape="CornerA" notches={["W","S"]} size={36} color="#60A5FA"/>
-        <FragSVG shape="CornerA" notches={["S","E"]} size={36} color="#60A5FA"/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <FImg src={F_IMG.cornerWS} size={38}/><FImg src={F_IMG.cornerSE} size={38}/>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Standard A Tier</h4>
       <p style={{fontSize:10,color:"#60A5FA",margin:"0 0 4px",fontStyle:"italic"}}>2-Notch Lower Corner • 5 badges</p>
@@ -402,9 +413,8 @@ export default function App(){
     </div>
     {/* S T-Piece */}
     <div style={{background:"#111827",border:"1px solid #F59E0B40",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <FragSVG shape="T-piece" notches={["W","N","E"]} size={36} color="#F59E0B"/>
-        <FragSVG shape="T-piece" notches={["E","S","W"]} size={36} color="#F59E0B"/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <FImg src={F_IMG.tpieceWNE} size={38}/><FImg src={F_IMG.tpieceWSE} size={38}/>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Standard S Tier</h4>
       <p style={{fontSize:10,color:"#F59E0B",margin:"0 0 4px",fontStyle:"italic"}}>3-Notch T-Piece • 6 badges • LOCKED</p>
@@ -412,8 +422,8 @@ export default function App(){
     </div>
     {/* Special Cross */}
     <div style={{background:"#111827",border:"1px solid #8B5CF640",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <FragSVG shape="Cross" notches={["N","S","E","W"]} size={36} color="#8B5CF6"/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <FImg src={F_IMG.crossSpecial} size={38}/>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Special</h4>
       <p style={{fontSize:10,color:"#8B5CF6",margin:"0 0 4px",fontStyle:"italic"}}>4-Notch Cross • 8 badges</p>
@@ -421,8 +431,8 @@ export default function App(){
     </div>
     {/* Unique Cross */}
     <div style={{background:"#111827",border:"1px solid #EC489940",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <FragSVG shape="Cross" notches={["N","S","E","W"]} size={36} color="#EC4899"/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <FImg src={F_IMG.crossUnique} size={38}/>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Unique</h4>
       <p style={{fontSize:10,color:"#EC4899",margin:"0 0 4px",fontStyle:"italic"}}>4-Notch Cross • 5 badges</p>
@@ -430,8 +440,8 @@ export default function App(){
     </div>
     {/* Hidden Cross */}
     <div style={{background:"#111827",border:"1px solid #10B98140",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <FragSVG shape="Cross" notches={["N","S","E","W"]} size={36} color="#10B981"/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <FImg src={F_IMG.crossHidden} size={38}/>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Hidden</h4>
       <p style={{fontSize:10,color:"#10B981",margin:"0 0 4px",fontStyle:"italic"}}>4-Notch Cross • 5 badges</p>
@@ -439,9 +449,9 @@ export default function App(){
     </div>
     {/* Combo Transistor */}
     <div style={{background:"#111827",border:"1px solid #FF00E540",borderRadius:8,padding:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-        <div style={{width:36,height:36,borderRadius:"50%",background:"#FF00E530",border:"2px solid #FF00E5",display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{width:12,height:12,borderRadius:"50%",background:"#FF00E5"}}/>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+        <div style={{width:38,height:38,borderRadius:"50%",background:"#FF00E520",border:"2px solid #FF00E5",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{width:14,height:14,borderRadius:"50%",background:"#FF00E5"}}/>
         </div>
       </div>
       <h4 style={{fontSize:11,fontWeight:700,color:"#F8FAFC",margin:"0 0 2px"}}>Combo Transistor</h4>
