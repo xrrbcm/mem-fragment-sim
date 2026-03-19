@@ -452,7 +452,7 @@ export default function App(){
 
   const css=`*{margin:0;padding:0;box-sizing:border-box}body{background:#0A0F1C}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:1}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#0F172A}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}@keyframes pulseGlow{0%,100%{stroke-opacity:0.2;stroke-width:2}50%{stroke-opacity:0.6;stroke-width:4}}`;
 
-  const tb=(p,l)=>(<button onClick={()=>{if(p===5||p===6||p===7)setPhase(p);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
+  const tb=(p,l)=>(<button onClick={()=>{if(p===5||p===6||p===7||p===8)setPhase(p);else if(p===1)setPhase(1);else if(simData)setPhase(p);else runSim();}} style={{padding:"6px 14px",background:phase===p?"#6366F1":"transparent",border:`1px solid ${phase===p?"#6366F1":"#334155"}`,borderRadius:6,color:phase===p?"#FFF":"#94A3B8",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);
 
   return(
     <div style={{minHeight:"100vh",background:"#0A0F1C",color:"#E2E8F0",fontFamily:"'SF Mono','Cascadia Code','JetBrains Mono',monospace"}}>
@@ -463,7 +463,7 @@ export default function App(){
             <h1 style={{fontSize:16,fontWeight:800,background:"linear-gradient(90deg,#22D3EE,#A78BFA,#F472B6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>MEM Fragment Board System</h1>
             <p style={{fontSize:8,color:"#64748B",marginTop:1,letterSpacing:2,textTransform:"uppercase"}}>V1 Phase A • Progressive • A/B Corners • Locked T-Pieces</p>
           </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}{tb(5,"Real Holders")}{tb(6,"🎮 Game")}{tb(7,"📈 Progression")}</div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{tb(1,"Guide & Boards")}{tb(8,"🧩 Fragments")}{tb(2,"Results")}{tb(3,"Analysis")}{tb(4,"Balance")}{tb(5,"Real Holders")}{tb(6,"🎮 Game")}{tb(7,"📈 Progression")}</div>
         </div>
       </div>
 
@@ -1228,6 +1228,271 @@ export default function App(){
     </div>
   </div>);
 })()}
+
+{/* ═══════════════════════ PHASE 8: FRAGMENT DISTRIBUTION ═══════════════════════ */}
+{phase===8&&(<div>
+  <h2 style={{fontSize:15,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>🧩 Fragment Distribution</h2>
+  <p style={{fontSize:10,color:"#64748B",margin:"0 0 16px",lineHeight:1.7,maxWidth:700}}>
+    How the 33 Standard badges are distributed across fragment types. Each badge becomes a specific fragment shape
+    based on its trait category and rarity. Special, Unique, and Hidden badges are all 4-notch crosses.
+  </p>
+
+  {/* Summary bar */}
+  <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+    {[["16","C/D Straight","#64748B"],["6","B Corner","#3B82F6"],["5","A Corner","#60A5FA"],["6","S T-Piece","#F59E0B"],["8","Special","#8B5CF6"],["5","Unique","#EC4899"],["5","Hidden","#10B981"]].map(([n,label,color])=>(
+      <div key={label} style={{background:`${color}15`,border:`1px solid ${color}40`,borderRadius:8,padding:"8px 16px",textAlign:"center"}}>
+        <div style={{fontSize:22,fontWeight:800,color}}>{n}</div>
+        <div style={{fontSize:9,color:"#94A3B8"}}>{label}</div>
+      </div>
+    ))}
+    <div style={{background:"#FF00E515",border:"1px solid #FF00E540",borderRadius:8,padding:"8px 16px",textAlign:"center"}}>
+      <div style={{fontSize:22,fontWeight:800,color:"#FF00E5"}}>19+</div>
+      <div style={{fontSize:9,color:"#94A3B8"}}>Combo Transistor</div>
+    </div>
+  </div>
+
+  {/* ── C/D STRAIGHT ── */}
+  <div style={{background:"#111827",border:"1px solid #64748B40",borderRadius:12,padding:16,marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+      <div style={{display:"flex",gap:6}}>
+        <FImg src={F_IMG.straightWE} size={52}/><FImg src={F_IMG.straightNS} size={52}/>
+      </div>
+      <div>
+        <h3 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:0}}>Standard C/D Tier — 2-Notch Straight</h3>
+        <p style={{fontSize:10,color:"#64748B",margin:"2px 0 0"}}>16 badges • Freely rotatable (W-E ↔ N-S) • 10 pts connected / 5 pts disconnected</p>
+      </div>
+    </div>
+    <p style={{fontSize:10,color:"#94A3B8",margin:"0 0 10px",lineHeight:1.6}}>
+      The most common fragments. Every collector gets at least one (their faction badge). These are path fillers — they continue a path in a straight line but cannot make turns.
+      Since they freely rotate between horizontal and vertical, a W-E piece and a N-S piece are functionally identical.
+    </p>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:6}}>
+      {[
+        {cat:"Faction ID",badges:[{n:"Citizen",s:"25.4%"},{n:"Mujin",s:"22.5%"},{n:"Kodaka",s:"17.4%"},{n:"Kaichukan",s:"17.2%"},{n:"Kazegami",s:"15.7%"},{n:"No ID",s:"1.7%"}]},
+        {cat:"Powers",badges:[{n:"Enhanced",s:"11.3%"}]},
+        {cat:"Equipment (Base)",badges:[{n:"Base Suitcase",s:"16.0%"},{n:"Base Weapon",s:"11.1%"}]},
+        {cat:"Battle Marks",badges:[{n:"Scarred",s:"12.2%"},{n:"Bandaged",s:"13.6%"},{n:"Marked",s:"13.3%"}]},
+        {cat:"Accessories",badges:[{n:"Visor",s:"11.4%"},{n:"Sharp Eye",s:"26.2%"},{n:"Capped",s:"18.9%"},{n:"Adorned",s:"20.7%"}]},
+      ].map(g=>(
+        <div key={g.cat} style={{background:"#0F172A",borderRadius:6,padding:8}}>
+          <div style={{fontSize:9,color:"#64748B",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>{g.cat}</div>
+          {g.badges.map(b=>(
+            <div key={b.n} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:10}}>
+              <span style={{color:"#CBD5E1"}}>{b.n}</span>
+              <span style={{color:"#64748B",fontSize:9}}>{b.s}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ── B CORNER ── */}
+  <div style={{background:"#111827",border:"1px solid #3B82F640",borderRadius:12,padding:16,marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+      <div style={{display:"flex",gap:6}}>
+        <FImg src={F_IMG.cornerWN} size={52}/><FImg src={F_IMG.cornerNE} size={52}/>
+      </div>
+      <div>
+        <h3 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:0}}>Standard B Tier — 2-Notch Upper Corner</h3>
+        <p style={{fontSize:10,color:"#3B82F6",margin:"2px 0 0"}}>6 badges • Limited rotation (WN ↔ NE) • 15 pts connected / 7 pts disconnected</p>
+      </div>
+    </div>
+    <p style={{fontSize:10,color:"#94A3B8",margin:"0 0 10px",lineHeight:1.6}}>
+      Upper corners make turns in the top-half directions. They can rotate between West-North and North-East, but <b style={{color:"#F87171"}}>can NEVER become an A-tier corner</b> (WS or SE).
+      These are mid-rarity inventory items — not everyone has them, but multi-holders often collect several.
+    </p>
+    <div style={{background:"#0F172A",borderRadius:6,padding:8}}>
+      <div style={{fontSize:9,color:"#3B82F6",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Inventory & Equipment (Mid-Rarity)</div>
+      {[{n:"One Punch",s:"8.9%"},{n:"Code Bender",s:"6.0%"},{n:"Hydrated",s:"1.2%"},{n:"Unlocked Suitcase",s:"1.0%"},{n:"Guitar",s:"1.0%"},{n:"Masked",s:"0.9%"}].map(b=>(
+        <div key={b.n} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:10}}>
+          <span style={{color:"#CBD5E1"}}>{b.n}</span>
+          <span style={{color:"#64748B",fontSize:9}}>{b.s}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ── A CORNER ── */}
+  <div style={{background:"#111827",border:"1px solid #60A5FA40",borderRadius:12,padding:16,marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+      <div style={{display:"flex",gap:6}}>
+        <FImg src={F_IMG.cornerWS} size={52}/><FImg src={F_IMG.cornerSE} size={52}/>
+      </div>
+      <div>
+        <h3 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:0}}>Standard A Tier — 2-Notch Lower Corner</h3>
+        <p style={{fontSize:10,color:"#60A5FA",margin:"2px 0 0"}}>5 badges • Limited rotation (WS ↔ SE) • 15 pts connected / 7 pts disconnected</p>
+      </div>
+    </div>
+    <p style={{fontSize:10,color:"#94A3B8",margin:"0 0 10px",lineHeight:1.6}}>
+      Lower corners make turns in the bottom-half directions. They can rotate between West-South and South-East, but <b style={{color:"#F87171"}}>can NEVER become a B-tier corner</b> (WN or NE).
+      These are the rarest Standard fragments — some have less than 0.2% supply. Owning one of these gives a significant board advantage.
+    </p>
+    <div style={{background:"#0F172A",borderRadius:6,padding:8}}>
+      <div style={{fontSize:9,color:"#60A5FA",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Inventory & Equipment (Rare)</div>
+      {[{n:"Unlocked Weapon",s:"0.6%"},{n:"Gameboy",s:"0.5%"},{n:"MaxTag",s:"0.2%"},{n:"Endo's Archive",s:"0.2%"},{n:"Bosu Badge",s:"0.1%",note:"Rarest corner"}].map(b=>(
+        <div key={b.n} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:10}}>
+          <span style={{color:"#CBD5E1"}}>{b.n} {b.note&&<span style={{fontSize:7,color:"#F59E0B",marginLeft:4}}>★ {b.note}</span>}</span>
+          <span style={{color:"#64748B",fontSize:9}}>{b.s}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ── S T-PIECE ── */}
+  <div style={{background:"#111827",border:"1px solid #F59E0B40",borderRadius:12,padding:16,marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+      <div style={{display:"flex",gap:6}}>
+        <FImg src={F_IMG.tpieceWNE} size={52}/><FImg src={F_IMG.tpieceWSE} size={52}/>
+      </div>
+      <div>
+        <h3 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:0}}>Standard S Tier — 3-Notch T-Piece <span style={{color:"#F87171",fontSize:11}}>🔒 LOCKED</span></h3>
+        <p style={{fontSize:10,color:"#F59E0B",margin:"2px 0 0"}}>6 badges • No rotation (random issuance) • 25 pts connected / 12 pts disconnected</p>
+      </div>
+    </div>
+    <p style={{fontSize:10,color:"#94A3B8",margin:"0 0 10px",lineHeight:1.6}}>
+      The most strategically important Standard fragment. T-pieces have 3 notches (one side is closed) and are <b style={{color:"#F87171"}}>permanently locked</b> in whatever orientation they're randomly issued.
+      Only ~3.4% of characters have Growth Path traits and ~1.4% have Type traits. These are true puzzle pieces — you build your board around them.
+    </p>
+    <p style={{fontSize:9,color:"#64748B",margin:"0 0 8px"}}>
+      4 possible locked orientations: <b style={{color:"#F59E0B"}}>WNE</b> (missing South) • <b style={{color:"#F59E0B"}}>NES</b> (missing West) • <b style={{color:"#F59E0B"}}>ESW</b> (missing North) • <b style={{color:"#F59E0B"}}>SWN</b> (missing East)
+    </p>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      <div style={{background:"#0F172A",borderRadius:6,padding:8}}>
+        <div style={{fontSize:9,color:"#F59E0B",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Growth Path (3 badges)</div>
+        {[{n:"Activated",s:"1.5%"},{n:"Warning",s:"1.2%"},{n:"Final Bosu Summoned",s:"0.8%"}].map(b=>(
+          <div key={b.n} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:10}}>
+            <span style={{color:"#CBD5E1"}}>{b.n}</span><span style={{color:"#64748B",fontSize:9}}>{b.s}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{background:"#0F172A",borderRadius:6,padding:8}}>
+        <div style={{fontSize:9,color:"#F59E0B",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:.5}}>Type (3 badges)</div>
+        {[{n:"Unlocked",s:"1.1%"},{n:"Remnant",s:"0.2%"},{n:"Final Bosu",s:"0.1%",note:"Rarest Standard (5 chars)"}].map(b=>(
+          <div key={b.n} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:10}}>
+            <span style={{color:"#CBD5E1"}}>{b.n} {b.note&&<span style={{fontSize:7,color:"#F87171",marginLeft:3}}>★ {b.note}</span>}</span><span style={{color:"#64748B",fontSize:9}}>{b.s}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* ── 4-NOTCH CROSSES ── */}
+  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12,marginBottom:14}}>
+    {/* Special */}
+    <div style={{background:"#111827",border:"1px solid #8B5CF640",borderRadius:12,padding:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+        <FImg src={F_IMG.crossSpecial} size={48}/>
+        <div>
+          <h3 style={{fontSize:13,fontWeight:700,color:"#F8FAFC",margin:0}}>Special — 4-Notch Cross</h3>
+          <p style={{fontSize:10,color:"#8B5CF6",margin:"2px 0 0"}}>8 badges • All sides open • 40 / 20 pts</p>
+        </div>
+      </div>
+      <p style={{fontSize:9,color:"#94A3B8",margin:"0 0 8px",lineHeight:1.6}}>
+        Action-based, no supply cap. The great equalizer — fits anywhere on the board. Every engaged player can earn all 8.
+      </p>
+      <div style={{background:"#0F172A",borderRadius:6,padding:8}}>
+        {["Profile Complete","First Claim","Storyteller","Community Regular","Quest Runner","Social Connector","Collector's Eye","Lore Scholar"].map(n=>(
+          <div key={n} style={{padding:"2px 0",fontSize:9,color:"#CBD5E1"}}>{n}</div>
+        ))}
+      </div>
+    </div>
+    {/* Unique */}
+    <div style={{background:"#111827",border:"1px solid #EC489940",borderRadius:12,padding:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+        <FImg src={F_IMG.crossUnique} size={48}/>
+        <div>
+          <h3 style={{fontSize:13,fontWeight:700,color:"#F8FAFC",margin:0}}>Unique — 4-Notch Cross</h3>
+          <p style={{fontSize:10,color:"#EC4899",margin:"2px 0 0"}}>5 badges • All sides open • 40 / 20 pts</p>
+        </div>
+      </div>
+      <p style={{fontSize:9,color:"#94A3B8",margin:"0 0 8px",lineHeight:1.6}}>
+        Time or quantity limited. Supply capped forever once windows close. Scarce power pieces.
+      </p>
+      <div style={{background:"#0F172A",borderRadius:6,padding:8}}>
+        {["Launch Day (Mar 24 only)","Early Adopter (7-day window)","Pioneer 100 (qty cap: 100)","Genesis Claimer (48hr window)","Seasonal Debut (Season 1)"].map(n=>(
+          <div key={n} style={{padding:"2px 0",fontSize:9,color:"#CBD5E1"}}>{n}</div>
+        ))}
+      </div>
+    </div>
+    {/* Hidden */}
+    <div style={{background:"#111827",border:"1px solid #10B98140",borderRadius:12,padding:16}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+        <FImg src={F_IMG.crossHidden} size={48}/>
+        <div>
+          <h3 style={{fontSize:13,fontWeight:700,color:"#F8FAFC",margin:0}}>Hidden — 4-Notch Cross</h3>
+          <p style={{fontSize:10,color:"#10B981",margin:"2px 0 0"}}>5 badges • All sides open • 40 / 20 pts</p>
+        </div>
+      </div>
+      <p style={{fontSize:9,color:"#94A3B8",margin:"0 0 8px",lineHeight:1.6}}>
+        One per faction. Secret criteria. No name, no hint visible. Powerful mystery pieces.
+      </p>
+      <div style={{background:"#0F172A",borderRadius:6,padding:8}}>
+        {["??? (Citizen faction)","??? (Mujin faction)","??? (Kodaka faction)","??? (Kaichukan faction)","??? (Kazegami faction)"].map(n=>(
+          <div key={n} style={{padding:"2px 0",fontSize:9,color:"#475569"}}>{n}</div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* ── COMBO TRANSISTOR ── */}
+  <div style={{background:"#111827",border:"1px solid #FF00E540",borderRadius:12,padding:16,marginBottom:14}}>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+      <div style={{width:52,height:52,borderRadius:"50%",background:"#FF00E520",border:"3px solid #FF00E5",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{width:18,height:18,borderRadius:"50%",background:"#FF00E5"}}/>
+      </div>
+      <div>
+        <h3 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:0}}>Combo Transistor — NOT a board tile</h3>
+        <p style={{fontSize:10,color:"#FF00E5",margin:"2px 0 0"}}>19 badges (Block 1) + TBD (Blocks 2 & 3) • +15 pts per matching notch</p>
+      </div>
+    </div>
+    <p style={{fontSize:10,color:"#94A3B8",margin:"0 0 10px",lineHeight:1.6}}>
+      Combo badges are placed in the <b>center transistor hole</b> of an existing fragment on the board. They do NOT occupy a board slot.
+      Each matching notch connection between the host tile and its neighbor = +15 bonus points. Reusable across all boards (not consumed).
+    </p>
+    <div style={{background:"#0F172A",borderRadius:6,padding:10}}>
+      <div style={{fontSize:9,color:"#FF00E5",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:.5}}>Block 1: Trait + Trait (19 combos)</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:4}}>
+        {["Own 2 IDs (25.8%)","Own All IDs (2.0%)","Own 2 IDs + No ID (1.0%)","Own 2 Growth Paths (0.2%)","Own All Growth Paths (0.1%)","Own 2 Types (<0.1%)","Own All Types (<0.1%)","Suitcase + Weapon (6.8%)","Unlocked Suitcase + Weapon (0.2%)","Full Unlocked Set (0.2%)","Own 2 Battle Marks (10.8%)","Own All Battle Marks (3.9%)","2 Accessories (38.3%)","All Accessories (0.9%)","Lore Master (1.5%)","Complete Collector (~0%)","Hand + Weapon (6.5%)","Hand + Item + Weapon (2.1%)","Hand + Item + Weapon + Suitcase (1.8%)"].map(n=>(
+          <div key={n} style={{padding:"2px 4px",fontSize:8,color:"#CBD5E1",background:"#FF00E508",borderRadius:3}}>{n}</div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* Quick reference summary table */}
+  <div style={{background:"#111827",border:"1px solid #1E293B",borderRadius:12,padding:16}}>
+    <h3 style={{fontSize:13,fontWeight:700,color:"#F8FAFC",margin:"0 0 10px"}}>Quick Reference</h3>
+    <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+      <thead><tr style={{color:"#64748B"}}>
+        {["Fragment","Tier","Badges","Shape","Notches","Rotation","Connected","Disconnected"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",borderBottom:"2px solid #1E293B",fontSize:9}}>{h}</th>)}
+      </tr></thead>
+      <tbody>
+        {[
+          ["C/D Straight","Standard","16","Line","2 (opposite)","Free (2 states)","10 pts","5 pts","#64748B"],
+          ["B Corner","Standard","6","Upper L","2 (adjacent)","WN ↔ NE only","15 pts","7 pts","#3B82F6"],
+          ["A Corner","Standard","5","Lower L","2 (adjacent)","WS ↔ SE only","15 pts","7 pts","#60A5FA"],
+          ["S T-Piece","Standard","6","T-shape","3 (one closed)","🔒 LOCKED","25 pts","12 pts","#F59E0B"],
+          ["Special","Action","8","Cross","4 (all open)","Irrelevant","40 pts","20 pts","#8B5CF6"],
+          ["Unique","Time-gated","5","Cross","4 (all open)","Irrelevant","40 pts","20 pts","#EC4899"],
+          ["Hidden","Secret","5","Cross","4 (all open)","Irrelevant","40 pts","20 pts","#10B981"],
+          ["Combo","Derived","19+","—","Transistor","—","+15/notch","—","#FF00E5"],
+        ].map(([frag,tier,count,shape,notches,rot,conn,disc,color])=>(
+          <tr key={frag} style={{borderBottom:"1px solid #1E293B20"}}>
+            <td style={{padding:"6px 8px",fontWeight:600,color}}>{frag}</td>
+            <td style={{padding:"6px 8px",color:"#94A3B8"}}>{tier}</td>
+            <td style={{padding:"6px 8px",color:"#FBBF24",fontWeight:700}}>{count}</td>
+            <td style={{padding:"6px 8px",color:"#94A3B8"}}>{shape}</td>
+            <td style={{padding:"6px 8px",color:"#94A3B8"}}>{notches}</td>
+            <td style={{padding:"6px 8px",color:rot.includes("LOCKED")?"#F87171":"#94A3B8",fontWeight:rot.includes("LOCKED")?700:400}}>{rot}</td>
+            <td style={{padding:"6px 8px",color:"#34D399"}}>{conn}</td>
+            <td style={{padding:"6px 8px",color:"#64748B"}}>{disc}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>)}
 
 {/* ═══════════════════════ PHASE 7: PROGRESSION BOARDS ═══════════════════════ */}
 {phase===7&&(<div>
