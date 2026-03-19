@@ -812,7 +812,9 @@ export default function App(){
         <span>Wallet</span><span>NFTs</span><span>Badges</span><span>Frags</span>
       </div>
       <div style={{maxHeight:500,overflowY:"auto"}}>
-        {holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase())).slice(0,100).map((h,i)=>(
+        {(()=>{
+          const filtered=holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase()));
+          return filtered.map((h,i)=>(
           <div key={i} onClick={()=>simHolder(h)} style={{
             padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",fontSize:9,
             background:selectedHolder?.addr===h.addr?"#6366F120":"transparent",
@@ -824,10 +826,8 @@ export default function App(){
             <span style={{width:40,textAlign:"center"}}>{h.badges.length}</span>
             <span style={{width:40,textAlign:"center",color:"#22D3EE"}}>{h.totalFrags}</span>
           </div>
-        ))}
-        {holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase())).length>100&&
-          <div style={{padding:8,textAlign:"center",fontSize:8,color:"#475569"}}>Showing first 100 of {holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase())).length} results</div>
-        }
+          ));
+        })()}
       </div>
     </div>
 
