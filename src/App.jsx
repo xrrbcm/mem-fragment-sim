@@ -375,6 +375,12 @@ export default function App(){
   const[holderSearch,setHolderSearch]=useState("");
   const[selectedHolder,setSelectedHolder]=useState(null);
   const[holderSim,setHolderSim]=useState(null);
+  const[holderPage,setHolderPage]=useState(0);
+  const HOLDER_PAGE_SZ=50;
+  // Global action badge overrides for Real Holders simulation
+  const[hSpecial,setHSpecial]=useState(8);
+  const[hUnique,setHUnique]=useState(2);
+  const[hHidden,setHHidden]=useState(0);
   // Game state
   const[gameBoard,setGameBoard]=useState(()=>Array.from({length:4},()=>Array(4).fill(null)));
   const[gameInv,setGameInv]=useState([]);
@@ -398,26 +404,19 @@ export default function App(){
   // Simulate a single holder across all 6 boards
   const simHolder=useCallback((h)=>{
     setSelectedHolder(h);
-    // Build their fragment inventory (trait badges only — no Special/Unique/Hidden yet since those are action-based)
     const fragList=[];let id=0;
     for(let i=0;i<h.cd;i++)fragList.push(mkFrag("CD_STRAIGHT",id++));
     for(let i=0;i<h.b;i++)fragList.push(mkFrag("B_CORNER",id++));
     for(let i=0;i<h.a;i++)fragList.push(mkFrag("A_CORNER",id++));
     for(let i=0;i<h.s;i++)fragList.push(mkFrag("S_TPIECE",id++));
-    // Estimate action badges: assume active holders earn some
-    const estSpecial=Math.min(8,Math.max(2,Math.floor(h.tokens>=5?8:h.tokens>=2?5:2)));
-    const estUnique=Math.min(5,h.tokens>=10?3:h.tokens>=2?2:0);
-    const estHidden=Math.min(5,h.tokens>=20?Math.min(3,Math.floor(h.tokens/30)):0);
-    for(let i=0;i<estSpecial;i++)fragList.push(mkFrag("SPECIAL",id++));
-    for(let i=0;i<estUnique;i++)fragList.push(mkFrag("UNIQUE",id++));
-    for(let i=0;i<estHidden;i++)fragList.push(mkFrag("HIDDEN",id++));
+    // Use global action badge settings (controlled by user)
+    for(let i=0;i<hSpecial;i++)fragList.push(mkFrag("SPECIAL",id++));
+    for(let i=0;i<hUnique;i++)fragList.push(mkFrag("UNIQUE",id++));
+    for(let i=0;i<hHidden;i++)fragList.push(mkFrag("HIDDEN",id++));
 
-    // Run progressive simulation (single pass, 20 iterations for speed)
-    const results=[];
-    const iters=20;
+    const results=[];const iters=20;
     for(let b=0;b<6;b++)results.push({runs:[],usageRuns:[]});
     for(let it=0;it<iters;it++){
-      // Re-randomize orientations each iteration
       const freshFrags=fragList.map((f,i)=>({...f,notches:randOrient(f.shape),id:i}));
       let rem=[...freshFrags],cum=0;
       for(let b=0;b<6;b++){
@@ -430,14 +429,13 @@ export default function App(){
         rem=rem.filter((_,i)=>!usedIds.has(i));
       }
     }
-    // Aggregate
     const agg=results.map((br,bi)=>{
       const R=br.runs,N=R.length;const av=fn=>R.reduce((s,r)=>s+fn(r),0)/N;
       const avgUsage={};FK.forEach(k=>{avgUsage[k]=+(br.usageRuns.reduce((s,u)=>s+(u[k]||0),0)/N).toFixed(1);});
       return{avgScore:+av(r=>r.total).toFixed(1),avgFilled:+av(r=>r.filled).toFixed(1),avgOnPath:+av(r=>r.onC).toFixed(1),pctPC:+((R.filter(r=>r.perfectClear).length/N*100).toFixed(1)),pctFull:+((R.filter(r=>r.boardCleared).length/N*100).toFixed(1)),avgCum:+av(r=>r.cumTotal).toFixed(1),avgCombo:+av(r=>r.cP||0).toFixed(1),avgUsage};
     });
-    setHolderSim({holder:h,frags:{CD:h.cd,B:h.b,A:h.a,S:h.s,Sp:estSpecial,Un:estUnique,Hd:estHidden},totalFrags:fragList.length,boards:agg});
-  },[]);
+    setHolderSim({holder:h,frags:{CD:h.cd,B:h.b,A:h.a,S:h.s,Sp:hSpecial,Un:hUnique,Hd:hHidden},totalFrags:fragList.length,boards:agg});
+  },[hSpecial,hUnique,hHidden]);
 
   const bAnal=useMemo(()=>BOARDS.map(b=>({turns:countTurns(b.path),...analyzeBoardNeeds(b)})),[]);
 
@@ -794,14 +792,33 @@ export default function App(){
 {/* ═══════════════════════ PHASE 5: REAL HOLDERS ═══════════════════════ */}
 {phase===5&&(<div>
   <h2 style={{fontSize:14,fontWeight:700,color:"#F8FAFC",margin:"0 0 4px"}}>Real Holder Simulation</h2>
-  <p style={{fontSize:10,color:"#64748B",margin:"0 0 12px",lineHeight:1.6}}>
+  <p style={{fontSize:10,color:"#64748B",margin:"0 0 10px",lineHeight:1.6}}>
     {holders.length} real wallets from on-chain data. Search by address, then click to simulate their board placement across all 6 boards.
-    Action badges (Special/Unique/Hidden) are estimated based on holder size.
   </p>
+
+  {/* Global Action Badge Controls */}
+  <div style={{background:"#0F172A",border:"1px solid #8B5CF640",borderRadius:8,padding:12,marginBottom:12}}>
+    <div style={{fontSize:10,fontWeight:700,color:"#8B5CF6",marginBottom:6}}>⚡ Action Badge Settings (applied to ALL holders when simulated)</div>
+    <div style={{display:"flex",gap:14,flexWrap:"wrap",alignItems:"center"}}>
+      {[["Special",hSpecial,setHSpecial,8,"#8B5CF6"],["Unique",hUnique,setHUnique,5,"#EC4899"],["Hidden",hHidden,setHHidden,5,"#10B981"]].map(([label,val,setter,max,color])=>(
+        <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
+          <span style={{fontSize:10,color}}>{label} (max {max}):</span>
+          <input type="number" min={0} max={max} value={val} onChange={e=>setter(Math.min(max,Math.max(0,+e.target.value||0)))}
+            style={{background:"#1E293B",border:`1px solid ${color}40`,borderRadius:4,padding:"4px 6px",color,fontSize:11,fontFamily:"inherit",width:40,textAlign:"center"}}/>
+          <button onClick={()=>setter(max)} style={{padding:"2px 8px",background:`${color}20`,border:`1px solid ${color}40`,borderRadius:3,color,fontSize:8,cursor:"pointer",fontFamily:"inherit"}}>Max</button>
+          <button onClick={()=>setter(0)} style={{padding:"2px 8px",background:"#1E293B",border:"1px solid #334155",borderRadius:3,color:"#64748B",fontSize:8,cursor:"pointer",fontFamily:"inherit"}}>0</button>
+        </div>
+      ))}
+    </div>
+    <p style={{fontSize:8,color:"#475569",margin:"6px 0 0"}}>
+      These represent action badges earned through engagement. Set to 8/2/0 for "active holder" scenario, or 8/5/5 for "max grind" scenario.
+      Click a wallet below to re-simulate with these settings.
+    </p>
+  </div>
 
   {/* Search */}
   <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
-    <input value={holderSearch} onChange={e=>setHolderSearch(e.target.value)} placeholder="Search wallet address..." style={{flex:1,maxWidth:400,background:"#0F172A",border:"1px solid #334155",borderRadius:6,padding:"8px 12px",color:"#E2E8F0",fontSize:11,fontFamily:"inherit"}}/>
+    <input value={holderSearch} onChange={e=>{setHolderSearch(e.target.value);setHolderPage(0);}} placeholder="Search wallet address..." style={{flex:1,maxWidth:400,background:"#0F172A",border:"1px solid #334155",borderRadius:6,padding:"8px 12px",color:"#E2E8F0",fontSize:11,fontFamily:"inherit"}}/>
     <span style={{fontSize:9,color:"#64748B"}}>{holders.length} wallets</span>
   </div>
 
@@ -811,11 +828,13 @@ export default function App(){
       <div style={{padding:"8px 12px",background:"#1E293B",fontSize:9,color:"#64748B",display:"flex",justifyContent:"space-between"}}>
         <span>Wallet</span><span>NFTs</span><span>Badges</span><span>Frags</span>
       </div>
-      <div style={{maxHeight:500,overflowY:"auto"}}>
+      <div style={{maxHeight:460,overflowY:"auto"}}>
         {(()=>{
           const filtered=holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase()));
-          return filtered.map((h,i)=>(
-          <div key={i} onClick={()=>simHolder(h)} style={{
+          const start=holderPage*HOLDER_PAGE_SZ;
+          const page=filtered.slice(start,start+HOLDER_PAGE_SZ);
+          return page.map((h,i)=>(
+          <div key={start+i} onClick={()=>simHolder(h)} style={{
             padding:"6px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",fontSize:9,
             background:selectedHolder?.addr===h.addr?"#6366F120":"transparent",
             borderBottom:"1px solid #1E293B20",
@@ -829,6 +848,19 @@ export default function App(){
           ));
         })()}
       </div>
+      {/* Pagination */}
+      {(()=>{
+        const filtered=holders.filter(h=>!holderSearch||h.addr.toLowerCase().includes(holderSearch.toLowerCase()));
+        const totalPages=Math.ceil(filtered.length/HOLDER_PAGE_SZ);
+        if(totalPages<=1)return null;
+        return(
+          <div style={{padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid #1E293B",background:"#0F172A"}}>
+            <button onClick={()=>setHolderPage(p=>Math.max(0,p-1))} disabled={holderPage===0} style={{padding:"3px 10px",background:"#1E293B",border:"1px solid #334155",borderRadius:4,color:holderPage===0?"#334155":"#94A3B8",fontSize:9,cursor:holderPage===0?"default":"pointer",fontFamily:"inherit"}}>← Prev</button>
+            <span style={{fontSize:9,color:"#64748B"}}>{holderPage*HOLDER_PAGE_SZ+1}–{Math.min((holderPage+1)*HOLDER_PAGE_SZ,filtered.length)} of {filtered.length}</span>
+            <button onClick={()=>setHolderPage(p=>Math.min(totalPages-1,p+1))} disabled={holderPage>=totalPages-1} style={{padding:"3px 10px",background:"#1E293B",border:"1px solid #334155",borderRadius:4,color:holderPage>=totalPages-1?"#334155":"#94A3B8",fontSize:9,cursor:holderPage>=totalPages-1?"default":"pointer",fontFamily:"inherit"}}>Next →</button>
+          </div>
+        );
+      })()}
     </div>
 
     {/* Selected holder detail */}
